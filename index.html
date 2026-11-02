@@ -1646,6 +1646,93 @@ render();
   console.info("Tripnote V6 Place Management loaded");
 })();
 </script>
+<!-- Tripnote V7: Time-based itinerary (append after V6, before </body>) -->
+<style>
+.v7-panel{margin-top:16px;padding:17px;border:1px solid #d9e6df;background:#f8fbf9;border-radius:15px}
+.v7-panel h3{margin:0 0 8px}.v7-panel p{font-size:11px;color:#7b8492;line-height:1.6}
+.v7-line{display:flex;gap:9px;align-items:flex-start;border-bottom:1px solid #e6ece8;padding:11px 0;font-size:12px}
+.v7-time{flex:0 0 64px;font-weight:750;color:#456b61}.v7-detail{flex:1;min-width:0}
+.v7-detail small{display:block;color:#7b8492;margin-top:4px;line-height:1.5}
+.v7-warning{color:#a45a25!important}.v7-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.v7-grid label{display:block;font-size:11px;color:#7b8492;margin-bottom:5px}
+.v7-grid input,.v7-grid select{width:100%;padding:9px;border:1px solid #e8ebef;border-radius:9px;background:white}
+.v7-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.v7-actions button{border:1px solid #d5e3dc;background:#edf3f0;color:#456b61;border-radius:8px;padding:8px 10px;font-size:11px;cursor:pointer}
+@media(max-width:720px){.v7-grid{grid-template-columns:1fr}}
+</style>
+<div class="modal-back" id="v7ModalBack" style="z-index:30" role="dialog" aria-modal="true" aria-label="장소 시간 설정">
+ <div class="modal" style="max-width:440px">
+  <div class="modal-head"><h3 id="v7ModalTitle">방문 시간 설정</h3><button class="btn" id="v7Close">✕</button></div>
+  <p class="muted">시간을 비워두면 해당 장소는 미정으로 표시됩니다. 이동 시간은 다음 장소까지의 예상 시간입니다.</p>
+  <div class="v7-grid">
+   <div><label for="v7Start">방문 시작 시간</label><input type="time" id="v7Start"></div>
+   <div><label for="v7Duration">체류 시간 (분)</label><input type="number" id="v7Duration" min="0" max="1440" step="5" placeholder="예: 60"></div>
+   <div><label for="v7Travel">다음 장소까지 이동 (분)</label><input type="number" id="v7Travel" min="0" max="1440" step="5" placeholder="예: 20"></div>
+   <div><label for="v7Fixed">예약/고정 일정</label><select id="v7Fixed"><option value="false">일반 일정</option><option value="true">시간 고정 · 예약</option></select></div>
+  </div>
+  <div class="modal-actions"><button class="btn" id="v7Cancel">취소</button><button class="btn primary" id="v7Save">시간 저장</button></div>
+ </div>
+</div>
+<script>
+(function(){
+ 'use strict';
+ const el=id=>document.getElementById(id);
+ let activeId=null;
+ const minute=t=>{if(!/^\d{2}:\d{2}$/.test(t||''))return null;const [h,m]=t.split(':').map(Number);return h<24&&m<60?h*60+m:null};
+ const fmt=n=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
+ const nonneg=(value,label)=>{if(value==='')return null;const n=Number(value);if(!Number.isInteger(n)||n<0||n>1440)throw Error(label+'은(는) 0~1440분 사이의 정수여야 합니다.');return n};
+ const getPlace=id=>data.days.flatMap(d=>d.places).find(p=>p.id===id);
+ const panel=document.createElement('section');panel.id='v7Panel';panel.className='v7-panel';
+ const anchor=el('v5DayMapPanel')||document.querySelector('#itinerary .route-box');anchor.after(panel);
+ function renderSchedule(){
+  const places=data.days[selectedDay]?.places||[];
+  const scheduled=places.map((p,index)=>({...p,index,startMin:minute(p.v7Start)}));
+  const sorted=scheduled.filter(p=>p.startMin!==null).sort((a,b)=>a.startMin-b.startMin||a.index-b.index);
+  const unscheduled=scheduled.filter(p=>p.startMin===null);
+  const lines=[];
+  let previous=null;
+  for(const p of sorted){
+   const duration=Number.isInteger(p.v7Duration)?p.v7Duration:0;
+   const travel=previous&&Number.isInteger(previous.v7Travel)?previous.v7Travel:0;
+   const prevEnd=previous?previous.startMin+(Number.isInteger(previous.v7Duration)?previous.v7Duration:0):null;
+   const overlap=previous&&prevEnd+travel>p.startMin;
+   const end=p.startMin+duration;
+   const fixed=p.v7Fixed?' 🔒 예약/고정':'';
+   lines.push(`<div class="v7-line"><div class="v7-time">${fmt(p.startMin)}</div><div class="v7-detail"><strong>${esc(p.name)}</strong>${esc(fixed)}<small>체류 ${duration}분 · 종료 ${end>=1440?'다음 날 '+fmt(end%1440):fmt(end)}${previous?' · 앞 장소 이후 예상 이동 '+travel+'분':''}</small>${overlap?'<small class="v7-warning">⚠ 앞 장소 체류·이동 시간과 겹칩니다.</small>':''}</div><button class="mini" data-v7-edit="${esc(p.id)}">시간</button></div>`);
+   previous=p;
+  }
+  for(const p of unscheduled){lines.push(`<div class="v7-line"><div class="v7-time">미정</div><div class="v7-detail"><strong>${esc(p.name)}</strong><small>시작 시간이 설정되지 않았습니다.</small></div><button class="mini" data-v7-edit="${esc(p.id)}">시간</button></div>`)}
+  panel.innerHTML='<h3>🕒 오늘의 시간표</h3><p>설정한 방문 시작 시간순으로 표시합니다. 기존 방문 순서는 변경되지 않습니다. 이동 시간은 수동 입력값입니다.</p>'+(lines.join('')||'<p>장소를 추가하면 시간표를 만들 수 있습니다.</p>')+'<p class="v7-warning">참고: 시간표는 같은 날짜 내에서만 겹침을 검사하며, 이동 시간은 실제 Google Maps 소요 시간과 다를 수 있습니다.</p>';
+  panel.querySelectorAll('[data-v7-edit]').forEach(btn=>btn.onclick=()=>openEditor(btn.dataset.v7Edit));
+ }
+ function openEditor(id){
+  const p=getPlace(id);if(!p)return;activeId=id;
+  el('v7ModalTitle').textContent=p.name+' · 시간 설정';
+  el('v7Start').value=p.v7Start||'';
+  el('v7Duration').value=p.v7Duration??'';
+  el('v7Travel').value=p.v7Travel??'';
+  el('v7Fixed').value=p.v7Fixed?'true':'false';
+  el('v7ModalBack').classList.add('show');
+ }
+ function closeEditor(){activeId=null;el('v7ModalBack').classList.remove('show')}
+ el('v7Close').onclick=closeEditor;el('v7Cancel').onclick=closeEditor;
+ el('v7ModalBack').addEventListener('click',e=>{if(e.target===el('v7ModalBack'))closeEditor()});
+ el('v7Save').onclick=()=>{
+  const p=getPlace(activeId);if(!p)return;
+  const start=el('v7Start').value;
+  if(start&&minute(start)===null){alert('시작 시간을 확인해 주세요.');return}
+  let duration,travel;
+  try{duration=nonneg(el('v7Duration').value,'체류 시간');travel=nonneg(el('v7Travel').value,'이동 시간')}catch(e){alert(e.message);return}
+  p.v7Start=start;p.v7Duration=duration;p.v7Travel=travel;p.v7Fixed=el('v7Fixed').value==='true';
+  closeEditor();save();
+ };
+ // V6 렌더 함수 위에 안전하게 래핑; 기존 지도 버튼을 유지
+ const previousRenderDay=renderDay;
+ renderDay=function(){previousRenderDay();renderSchedule()};
+ renderSchedule();
+ console.info('Tripnote V7 time itinerary loaded');
+})();
+</script>
 
 </body>
 </html>
