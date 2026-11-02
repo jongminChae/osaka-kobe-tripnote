@@ -1226,5 +1226,426 @@ render();
 })();
 </script>
 
+<!-- Tripnote V6: Place Management -->
+<style>
+.v6-field{margin-top:14px}
+.v6-field label{display:block;font-size:11px;font-weight:700;color:#7b8492;margin-bottom:6px}
+.v6-field input,.v6-field select{width:100%;padding:10px;border:1px solid #e8ebef;border-radius:9px;background:white;font-size:12px}
+.v6-hint{font-size:10px;color:#7b8492;line-height:1.6;margin:5px 0}
+.v6-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+.v6-actions button{padding:8px 10px;border:1px solid #d5e3dc;background:#edf3f0;color:#456b61;border-radius:8px;font-size:11px;cursor:pointer}
+.v6-tag{display:inline-block;margin-top:5px;font-size:10px;color:#456b61}
+</style>
+
+<script>
+(function(){
+  "use strict";
+
+  const $v=id=>document.getElementById(id);
+  const backupKey=KEY+"_before_v6";
+
+  // 기존 데이터의 최초 백업을 별도 키에 보관
+  try{
+    const original=localStorage.getItem(KEY);
+    if(original&&!localStorage.getItem(backupKey)){
+      localStorage.setItem(backupKey,original);
+    }
+  }catch(e){
+    console.warn("V6 자동 백업 실패",e);
+  }
+
+  function addField(id,label,placeholder,afterId){
+    if($v(id))return;
+
+    const box=document.createElement("div");
+    box.className="field full v6-field";
+
+    const title=document.createElement("label");
+    title.htmlFor=id;
+    title.textContent=label;
+
+    const input=document.createElement("input");
+    input.id=id;
+    input.placeholder=placeholder||"";
+
+    box.append(title,input);
+
+    const anchor=$v(afterId)?.closest(".field");
+    if(anchor)anchor.after(box);
+
+    return box;
+  }
+
+  // 기존 장소 수정 창을 확장
+  addField(
+    "v6MapUrl",
+    "Google Maps 공유 링크",
+    "https://maps.app.goo.gl/...",
+    "fAddress"
+  );
+
+  addField(
+    "v6MapQuery",
+    "Google Maps 검색어 (선택)",
+    "예: 生田神社 神戸",
+    "v6MapUrl"
+  );
+
+  addField(
+    "v6VisitStatus",
+    "방문 상태",
+    "",
+    "v6MapQuery"
+  );
+
+  addField(
+    "v6Favorite",
+    "즐겨찾기",
+    "",
+    "v6VisitStatus"
+  );
+
+  const visit=$v("v6VisitStatus");
+  const favorite=$v("v6Favorite");
+
+  if(visit){
+    const select=document.createElement("select");
+    select.id="v6VisitSelect";
+    [
+      ["미정","미정"],
+      ["방문 예정","방문 예정"],
+      ["방문 완료","방문 완료"]
+    ].forEach(([value,label])=>{
+      select.add(new Option(label,value));
+    });
+    visit.replaceWith(select);
+  }
+
+  if(favorite){
+    const select=document.createElement("select");
+    select.id="v6FavoriteSelect";
+    select.add(new Option("일반 장소","false"));
+    select.add(new Option("★ 즐겨찾기","true"));
+    favorite.replaceWith(select);
+  }
+
+  ["숙소","교통"].forEach(type=>{
+    const select=$v("fType");
+    if(select&&![...select.options].some(o=>o.value===type)){
+      select.add(new Option(type,type));
+    }
+
+    const filter=$v("filterType");
+    if(filter&&![...filter.options].some(o=>o.value===type)){
+      filter.add(new Option(type,type));
+    }
+  });
+
+  function getOriginal(id){
+    for(let day=0;day<data.days.length;day++){
+      const index=data.days[day].places.findIndex(
+        p=>p.id===id
+      );
+      if(index!==-1){
+        return {place:data.days[day].places[index],day,index};
+      }
+    }
+    return null;
+  }
+
+  // 기존 등록·수정 기능에 새 필드를 연결
+  const previousOpenModal=openModal;
+
+  openModal=function(p=null,day=selectedDay){
+    previousOpenModal(p,day);
+
+    $v("v6MapUrl").value=p?.mapUrl||"";
+    $v("v6MapQuery").value=p?.mapQuery||"";
+    $v("v6VisitSelect").value=p?.visitStatus||"미정";
+    $v("v6FavoriteSelect").value=
+      p?.favorite?"true":"false";
+  };
+
+  function validMapUrl(value){
+    if(!value)return true;
+    try{
+      const url=new URL(value);
+      return url.protocol==="https:"&&[
+        "maps.app.goo.gl",
+        "www.google.com",
+        "google.com",
+        "maps.google.com",
+        "goo.gl"
+      ].includes(url.hostname)&&
+      (url.hostname!=="www.google.com"||
+       url.pathname.startsWith("/maps"));
+    }catch(e){
+      return false;
+    }
+  }
+
+  function duplicateOf(place,day,editing){
+    return data.days.flatMap((d,i)=>
+      d.places.map(p=>({...p,day:i}))
+    ).find(p=>{
+      if(p.id===editing)return false;
+
+      const sameUrl=place.mapUrl&&p.mapUrl&&
+        place.mapUrl===p.mapUrl;
+
+      const sameName=
+        p.name.trim().toLowerCase()===
+        place.name.trim().toLowerCase();
+
+      const sameAddress=place.address&&p.address&&
+        place.address.trim()===p.address.trim();
+
+      return sameUrl||
+        (sameName&&sameAddress)||
+        (sameName&&p.day===day);
+    });
+  }
+
+  $v("savePlace").onclick=()=>{
+    const name=$v("fName").value.trim();
+    if(!name){
+      notify("장소 이름을 입력해 주세요.");
+      return;
+    }
+
+    const mapUrl=$v("v6MapUrl").value.trim();
+    if(!validMapUrl(mapUrl)){
+      alert("Google Maps의 HTTPS 공유 링크를 입력해 주세요.");
+      return;
+    }
+
+    const latRaw=$v("fLat").value.trim();
+    const lngRaw=$v("fLng").value.trim();
+    const lat=latRaw===""?null:Number(latRaw);
+    const lng=lngRaw===""?null:Number(lngRaw);
+
+    if((lat===null)!==(lng===null)||
+      (lat!==null&&(
+        !Number.isFinite(lat)||
+        !Number.isFinite(lng)||
+        Math.abs(lat)>90||
+        Math.abs(lng)>180
+      ))){
+      alert("위도와 경도를 확인해 주세요.");
+      return;
+    }
+
+    const day=Number($v("fDay").value);
+    if(!Number.isInteger(day)||day<0||day>=6)return;
+
+    const old=editingId?getOriginal(editingId):null;
+
+    // 기존 필드를 포함하여 정보 보존
+    const place={
+      ...(old?.place||{}),
+      id:editingId||newId(),
+      name,
+      type:$v("fType").value,
+      status:$v("fStatus").value,
+      area:$v("fArea").value,
+      address:$v("fAddress").value.trim(),
+      lat,lng,
+      price:$v("fPrice").value,
+      booking:$v("fBooking").value,
+      memo:$v("fMemo").value,
+      mapUrl,
+      mapQuery:$v("v6MapQuery").value.trim(),
+      visitStatus:$v("v6VisitSelect").value,
+      favorite:$v("v6FavoriteSelect").value==="true"
+    };
+
+    const duplicate=duplicateOf(place,day,editingId);
+    if(duplicate){
+      const proceed=confirm(
+        "비슷하거나 동일한 장소가 이미 등록되어 있습니다.\n"+
+        "기존 장소: "+duplicate.name+
+        " (DAY "+(duplicate.day+1)+")\n\n"+
+        "그래도 등록하시겠습니까?"
+      );
+      if(!proceed)return;
+    }
+
+    // 수정 시 기존 날짜·순서를 최대한 유지
+    if(old){
+      data.days[old.day].places.splice(old.index,1);
+    }
+
+    if(old&&old.day===day){
+      data.days[day].places.splice(old.index,0,place);
+    }else{
+      data.days[day].places.push(place);
+    }
+
+    selectedDay=day;
+    recommended=null;
+    closeModal();
+    save();
+  };
+
+  function pointForRoute(p){
+    if(p.lat!=null&&p.lng!=null&&
+       p.lat!==""&&p.lng!==""){
+      const lat=Number(p.lat),lng=Number(p.lng);
+      if(Number.isFinite(lat)&&Number.isFinite(lng)&&
+         Math.abs(lat)<=90&&Math.abs(lng)<=180){
+        return lat+","+lng;
+      }
+    }
+
+    return (
+      p.address?.trim()||
+      p.mapQuery?.trim()||
+      [p.name,p.area,"Japan"].filter(Boolean).join(" ")
+    );
+  }
+
+  function openV6Place(p){
+    const url=p.mapUrl?.trim();
+
+    if(url&&validMapUrl(url)){
+      window.open(url,"_blank","noopener,noreferrer");
+      return;
+    }
+
+    const query=pointForRoute(p);
+    window.open(
+      "https://www.google.com/maps/search/?"+
+      new URLSearchParams({api:"1",query}),
+      "_blank","noopener,noreferrer"
+    );
+  }
+
+  // V5가 생성한 지도 버튼을 V6 동작으로 교체
+  function upgradeButtons(){
+    document.querySelectorAll(
+      "#dayPlaces .place"
+    ).forEach((row,i)=>{
+      const p=data.days[selectedDay]?.places[i];
+      if(!p)return;
+
+      const old=row.querySelector(".v5-map-btn");
+      if(!old)return;
+
+      const btn=old.cloneNode(true);
+      btn.addEventListener("click",()=>openV6Place(p));
+      old.replaceWith(btn);
+
+      const info=row.querySelector(".place-info");
+      if(info&&!info.querySelector(".v6-tag")){
+        const tag=document.createElement("span");
+        tag.className="v6-tag";
+        tag.textContent=
+          (p.favorite?"★ ":"")+
+          (p.visitStatus||"미정")+
+          (p.mapUrl?" · 지도 링크 저장됨":"");
+        info.append(tag);
+      }
+    });
+
+    document.querySelectorAll(
+      "#libraryList .library-item"
+    ).forEach(row=>{
+      const edit=row.querySelector("[data-lib-edit]");
+      const old=row.querySelector(".v5-map-btn");
+      if(!edit||!old)return;
+
+      const p=allPlaces().find(
+        item=>item.id===edit.dataset.libEdit
+      );
+      if(!p)return;
+
+      const btn=old.cloneNode(true);
+      btn.addEventListener("click",()=>openV6Place(p));
+      old.replaceWith(btn);
+    });
+  }
+
+  const oldRenderDay=renderDay;
+  renderDay=function(){
+    oldRenderDay();
+    upgradeButtons();
+  };
+
+  const oldRenderLibrary=renderLibrary;
+  renderLibrary=function(){
+    oldRenderLibrary();
+    upgradeButtons();
+  };
+
+  // V5 전체 동선 버튼도 주소·검색어를 사용하도록 개선
+  const wholeMapButton=document.querySelector(
+    "#v5DayMapPanel .v5-btn"
+  );
+
+  if(wholeMapButton){
+    const newButton=wholeMapButton.cloneNode(true);
+    wholeMapButton.replaceWith(newButton);
+
+    newButton.addEventListener("click",()=>{
+      const places=data.days[selectedDay].places;
+
+      if(!places.length){
+        alert("먼저 장소를 등록해 주세요.");
+        return;
+      }
+
+      if(places.length===1){
+        openV6Place(places[0]);
+        return;
+      }
+
+      const starts={
+        sannomiya:"Sannomiya Station Kobe Japan",
+        namba:"Namba Station Osaka Japan",
+        umeda:"Osaka Station Umeda Japan",
+        kyoto:"Kyoto Station Japan"
+      };
+
+      const start=starts[$v("v5Origin").value];
+      const mode=$v("v5TravelMode").value;
+      const points=places.map(pointForRoute);
+
+      const origin=start||points.shift();
+      const destination=points.pop();
+
+      const params=new URLSearchParams({
+        api:"1",origin,destination,
+        travelmode:mode
+      });
+
+      if(points.length){
+        params.set("waypoints",points.join("|"));
+      }
+
+      const url="https://www.google.com/maps/dir/?"+
+        params.toString();
+
+      if(url.length>2048){
+        alert("장소가 많아 지도 URL 길이 제한을 초과했습니다.");
+        return;
+      }
+
+      if(points.length>3&&!confirm(
+        "모바일에서는 일부 경유지가 생략될 수 있습니다.\n"+
+        "Google Maps를 여시겠습니까?"
+      ))return;
+
+      window.open(url,"_blank","noopener,noreferrer");
+    });
+  }
+
+  // V6 정보가 포함된 장소 목록으로 새로고침
+  renderDay();
+  renderLibrary();
+
+  console.info("Tripnote V6 Place Management loaded");
+})();
+</script>
+
 </body>
 </html>
