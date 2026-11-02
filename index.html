@@ -888,5 +888,343 @@ $("fileInput").onchange=e=>{
 
 render();
 </script>
+
+<!-- Tripnote V5: Google Maps integration -->
+<style>
+.v5-panel{margin-top:16px;padding:15px;border:1px solid #d9e6df;border-radius:14px;background:#f8fbf9}
+.v5-panel h3{margin:0 0 8px;font-size:14px}
+.v5-panel p{color:#7b8492;font-size:11px;line-height:1.6}
+.v5-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.v5-row input,.v5-row select{min-width:0;flex:1;padding:10px;border:1px solid #e8ebef;border-radius:9px;background:white;font-size:12px}
+.v5-btn{padding:9px 12px;border-radius:9px;background:#456b61;color:#fff;font-size:11px;font-weight:700;border:0;cursor:pointer}
+.v5-btn.secondary{background:#edf3f0;color:#456b61;border:1px solid #d5e3dc}
+.v5-map-btn{margin-left:5px}
+.v5-tip{font-size:11px;color:#7b8492}
+</style>
+
+<script>
+(function(){
+  'use strict';
+
+  const googleBase='https://www.google.com/maps/';
+  const byId=id=>document.getElementById(id);
+  const openMaps=url=>window.open(url,'_blank','noopener,noreferrer');
+
+  const queryText=p=>{
+    const raw=(p.address||'').trim();
+    if(raw.startsWith('https://www.google.com/maps/')||
+       raw.startsWith('https://maps.app.goo.gl/')){
+      return p.name+' Japan';
+    }
+    return [
+      p.name,
+      raw,
+      (p.area||data.days[selectedDay]?.area||''),
+      'Japan'
+    ].filter(Boolean).join(' ');
+  };
+
+  const pointText=p=>{
+    const lat=Number(p.lat);
+    const lng=Number(p.lng);
+
+    if(p.lat!=null&&p.lat!==''&&
+       p.lng!=null&&p.lng!==''&&
+       Number.isFinite(lat)&&Number.isFinite(lng)&&
+       Math.abs(lat)<=90&&Math.abs(lng)<=180){
+      return lat+','+lng;
+    }
+
+    return queryText(p);
+  };
+
+  const mapSearch=q=>googleBase+'search/?'+
+    new URLSearchParams({api:'1',query:q});
+
+  function searchMaps(){
+    const input=byId('v5SearchInput');
+    const term=input?.value.trim();
+
+    if(!term){
+      input?.focus();
+      return;
+    }
+
+    const region=data.days[selectedDay]?.area||'오사카';
+
+    openMaps(mapSearch(
+      term+' '+
+      (region==='이동일'?'고베 오사카':region)+
+      ' 일본'
+    ));
+  }
+
+  function viewPlace(p){
+    openMaps(mapSearch(pointText(p)));
+  }
+
+  function openDayMap(){
+    const day=data.days[selectedDay];
+    const ps=day.places;
+
+    if(!ps.length){
+      alert('먼저 방문 장소를 등록해 주세요.');
+      return;
+    }
+
+    if(ps.length===1){
+      viewPlace(ps[0]);
+      return;
+    }
+
+    const originMode=byId('v5Origin')?.value||'none';
+    const mode=byId('v5TravelMode')?.value||'walking';
+
+    const startOptions={
+      sannomiya:'Sannomiya Station Kobe Japan',
+      namba:'Namba Station Osaka Japan',
+      umeda:'Osaka Station Umeda Japan',
+      kyoto:'Kyoto Station Japan'
+    };
+
+    const start=startOptions[originMode];
+    const places=ps.map(pointText);
+
+    const origin=start||places.shift();
+    const destination=places.pop();
+
+    const params=new URLSearchParams({
+      api:'1',
+      origin,
+      destination,
+      travelmode:mode
+    });
+
+    if(places.length){
+      params.set('waypoints',places.join('|'));
+    }
+
+    const url=googleBase+'dir/?'+params.toString();
+
+    if(url.length>2048){
+      alert('장소가 많아 지도 URL 제한을 초과했습니다.');
+      return;
+    }
+
+    if(places.length>3){
+      const proceed=confirm(
+        '모바일 브라우저에서는 중간 경유지가 '+
+        '3곳까지만 지원될 수 있습니다. '+
+        'Google Maps에서 전체 순서를 확인하시겠습니까?'
+      );
+
+      if(!proceed)return;
+    }
+
+    openMaps(url);
+  }
+
+  function make(tag,props={},content=''){
+    const el=document.createElement(tag);
+    Object.assign(el,props);
+    if(content)el.textContent=content;
+    return el;
+  }
+
+  function addSearchPanel(){
+    if(byId('v5SearchPanel'))return;
+
+    const side=document.querySelector(
+      '#itinerary .day-side'
+    );
+
+    if(!side)return;
+
+    const panel=make('div',{
+      id:'v5SearchPanel',
+      className:'v5-panel'
+    });
+
+    panel.append(
+      make('h3',{},'🔎 Google Maps 장소 검색')
+    );
+
+    panel.append(
+      make('p',{},
+        'Google Maps에서 장소를 찾은 뒤, '+
+        '빠른 장소 등록에 이름을 입력하세요.'
+      )
+    );
+
+    const row=make('div',{className:'v5-row'});
+
+    const input=make('input',{
+      id:'v5SearchInput',
+      placeholder:'예: 고베규 맛집, 도톤보리 카페'
+    });
+
+    const btn=make('button',{
+      type:'button',
+      className:'v5-btn'
+    },'지도에서 검색 ↗');
+
+    btn.addEventListener('click',searchMaps);
+
+    input.addEventListener('keydown',e=>{
+      if(e.key==='Enter')searchMaps();
+    });
+
+    row.append(input,btn);
+    panel.append(row);
+    side.append(panel);
+  }
+
+  function addDayPanel(){
+    if(byId('v5DayMapPanel'))return;
+
+    const route=document.querySelector(
+      '#itinerary .route-box'
+    );
+
+    const main=document.querySelector(
+      '#itinerary .day-main'
+    );
+
+    if(!main)return;
+
+    const panel=make('div',{
+      id:'v5DayMapPanel',
+      className:'v5-panel'
+    });
+
+    panel.append(
+      make('h3',{},'🗺️ 오늘의 전체 동선 지도')
+    );
+
+    panel.append(
+      make('p',{},
+        '방문 장소 목록의 순서대로 Google Maps '+
+        '경로를 엽니다. 동선 추천 없이도 사용할 수 있습니다.'
+      )
+    );
+
+    const row=make('div',{className:'v5-row'});
+
+    const origin=make('select',{id:'v5Origin'});
+
+    [
+      ['none','첫 방문 장소에서 출발'],
+      ['sannomiya','고베 산노미야역 출발'],
+      ['namba','오사카 난바역 출발'],
+      ['umeda','오사카역 출발'],
+      ['kyoto','교토역 출발']
+    ].forEach(([v,t])=>{
+      origin.add(new Option(t,v));
+    });
+
+    const mode=make('select',{id:'v5TravelMode'});
+
+    [
+      ['walking','도보'],
+      ['transit','대중교통'],
+      ['driving','자동차']
+    ].forEach(([v,t])=>{
+      mode.add(new Option(t,v));
+    });
+
+    const btn=make('button',{
+      type:'button',
+      className:'v5-btn'
+    },'전체 동선 지도 ↗');
+
+    btn.addEventListener('click',openDayMap);
+
+    row.append(origin,mode,btn);
+    panel.append(row);
+
+    panel.append(
+      make('p',{className:'v5-tip'},
+        'Google Maps에서 실제 이동 시간과 환승을 확인하세요.'
+      )
+    );
+
+    if(route){
+      route.after(panel);
+    }else{
+      main.append(panel);
+    }
+  }
+
+  function addMapButtons(){
+    const places=data.days[selectedDay]?.places||[];
+
+    document.querySelectorAll(
+      '#dayPlaces .place'
+    ).forEach((el,i)=>{
+      if(el.querySelector('.v5-map-btn')||!places[i]){
+        return;
+      }
+
+      const btn=make('button',{
+        type:'button',
+        className:'mini v5-map-btn',
+        title:'Google Maps에서 장소 보기'
+      },'지도 보기 ↗');
+
+      btn.addEventListener('click',()=>{
+        viewPlace(places[i]);
+      });
+
+      (el.querySelector('.place-actions')||el).append(btn);
+    });
+
+    document.querySelectorAll(
+      '#libraryList .library-item'
+    ).forEach(el=>{
+      if(el.querySelector('.v5-map-btn'))return;
+
+      const edit=el.querySelector('[data-lib-edit]');
+      if(!edit)return;
+
+      const p=allPlaces().find(
+        x=>x.id===edit.dataset.libEdit
+      );
+
+      if(!p)return;
+
+      const btn=make('button',{
+        type:'button',
+        className:'mini v5-map-btn'
+      },'지도 보기 ↗');
+
+      btn.addEventListener('click',()=>{
+        viewPlace(p);
+      });
+
+      edit.parentElement.append(btn);
+    });
+  }
+
+  addSearchPanel();
+  addDayPanel();
+
+  const oldRenderDay=renderDay;
+
+  renderDay=function(){
+    oldRenderDay();
+    addMapButtons();
+  };
+
+  const oldRenderLibrary=renderLibrary;
+
+  renderLibrary=function(){
+    oldRenderLibrary();
+    addMapButtons();
+  };
+
+  addMapButtons();
+})();
+</script>
+
 </body>
 </html>
