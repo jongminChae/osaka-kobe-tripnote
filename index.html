@@ -1,136 +1,892 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tripnote — Osaka & Kobe</title>
 <style>
-:root{--bg:#f5f6f8;--panel:#fff;--ink:#20242c;--muted:#7b8492;--line:#e8ebef;--accent:#456b61;--accent2:#e8f0ed;--warm:#f6eee4;--shadow:0 8px 28px rgba(31,42,55,.06);--radius:18px}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
-button,input,select,textarea{font:inherit}button{cursor:pointer;border:0}
-.app{min-height:100vh;display:grid;grid-template-columns:245px 1fr}
-.sidebar{background:#fff;border-right:1px solid var(--line);padding:26px 18px;display:flex;flex-direction:column;gap:26px}
-.brand{display:flex;align-items:center;gap:11px;padding:0 10px}.brand-mark{width:38px;height:38px;border-radius:13px;background:var(--accent);color:white;display:grid;place-items:center;font-size:19px}.brand strong{font-size:17px;letter-spacing:-.4px}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:1.5px;margin-top:2px}
-.nav-label{font-size:10px;color:#a1a8b2;letter-spacing:1.4px;font-weight:700;padding:0 12px;margin-bottom:8px}.nav{display:grid;gap:5px}.nav button{background:transparent;text-align:left;padding:12px;border-radius:11px;color:#626b78;font-weight:600;font-size:13px;display:flex;align-items:center;gap:12px}.nav button.active,.nav button:hover{background:var(--accent2);color:var(--accent)}.nav .ico{width:19px;text-align:center;font-size:16px}
-.side-trip{margin-top:auto;background:#f7f8f7;border:1px solid var(--line);border-radius:15px;padding:15px}.side-trip small{color:var(--muted);font-size:11px}.side-trip strong{display:block;margin:7px 0 4px;font-size:14px}.side-trip span{font-size:11px;color:var(--muted)}
-main{padding:30px 36px 60px;max-width:1500px;width:100%;margin:0 auto}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}.eyebrow{font-size:11px;letter-spacing:1.7px;color:var(--accent);font-weight:800}.topbar h1{font-size:26px;letter-spacing:-1px;margin:6px 0 0}.top-actions{display:flex;gap:9px;align-items:center}.btn{padding:10px 14px;border-radius:10px;font-size:12px;font-weight:700;background:white;border:1px solid var(--line);color:#49515c}.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn:hover{filter:brightness(.97)}.iconbtn{width:36px;height:36px;border-radius:10px;background:white;border:1px solid var(--line)}
-.hero{background:linear-gradient(115deg,#314f49,#57766d);color:white;border-radius:22px;padding:25px 28px;display:flex;justify-content:space-between;align-items:center;gap:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:240px;height:240px;border:1px solid rgba(255,255,255,.13);border-radius:50%;right:11%;top:-130px;box-shadow:0 0 0 28px rgba(255,255,255,.035),0 0 0 58px rgba(255,255,255,.025)}.hero .eyebrow{color:#d6e5df}.hero h2{font-size:24px;margin:8px 0 7px;letter-spacing:-.7px}.hero p{margin:0;color:#d5e0dc;font-size:12px}.hero-stats{display:flex;gap:26px;z-index:1}.hero-stat strong{font-size:25px;display:block}.hero-stat span{font-size:10px;color:#d5e0dc}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0 26px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px 18px}.stat label{font-size:11px;color:var(--muted)}.stat strong{display:block;font-size:22px;margin-top:8px;letter-spacing:-.5px}.stat em{font-style:normal;font-size:10px;color:var(--accent);margin-left:5px}
-.section-head{display:flex;justify-content:space-between;align-items:end;margin:25px 0 13px}.section-head h3{margin:0;font-size:16px;letter-spacing:-.3px}.section-head p{margin:5px 0 0;color:var(--muted);font-size:11px}
-.day-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.day-card{background:white;border:1px solid var(--line);border-radius:16px;padding:16px;min-height:150px;transition:.15s}.day-card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}.day-top{display:flex;justify-content:space-between;align-items:center}.day-no{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:1px}.pill{font-size:10px;padding:5px 8px;border-radius:30px;background:#eef1f3;color:#66717d}.pill.green{background:#e7f1ed;color:#456b61}.day-card h4{margin:13px 0 5px;font-size:16px}.day-card p{font-size:11px;color:var(--muted);margin:0;min-height:16px}.day-bottom{display:flex;justify-content:space-between;margin-top:17px;padding-top:11px;border-top:1px solid #f0f1f3;color:var(--muted);font-size:10px}
-.content-grid{display:grid;grid-template-columns:1.35fr .9fr;gap:15px;margin-top:20px}.panel{background:white;border:1px solid var(--line);border-radius:17px;padding:18px}.panel h3{margin:0;font-size:14px}.panel-sub{font-size:10px;color:var(--muted);margin-top:5px}.empty{padding:28px;text-align:center;color:var(--muted);font-size:12px}
-.quick-list{display:grid;gap:12px;margin-top:17px}.quick-item{display:flex;align-items:center;gap:11px}.q-icon{width:34px;height:34px;border-radius:11px;background:#f2f4f3;display:grid;place-items:center}.quick-item strong{font-size:12px;display:block}.quick-item small{font-size:10px;color:var(--muted)}
-.progress{height:6px;border-radius:8px;background:#edf0f1;margin-top:13px;overflow:hidden}.progress span{height:100%;display:block;background:var(--accent);border-radius:8px}
-.view{display:none}.view.active{display:block}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.toolbar input,.toolbar select{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:white;font-size:12px;color:#404852}
-.day-tabs{display:flex;gap:7px;overflow:auto;padding-bottom:5px;margin:15px 0}.day-tab{white-space:nowrap;border:1px solid var(--line);background:white;color:#66717d;border-radius:10px;padding:9px 13px;font-size:11px;font-weight:700}.day-tab.active{background:var(--accent);color:white;border-color:var(--accent)}
-.day-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:15px}.day-main,.day-side{background:white;border:1px solid var(--line);border-radius:17px;padding:19px}.day-main h2{font-size:21px;margin:3px 0 6px}.day-main .desc{color:var(--muted);font-size:11px}.place-list{display:grid;gap:9px;margin-top:18px}.place{display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:11px;border:1px solid var(--line);border-radius:13px;padding:11px}.place-number{width:30px;height:30px;border-radius:10px;background:#f1f4f2;display:grid;place-items:center;font-size:11px;color:var(--accent);font-weight:800}.place strong{font-size:12px}.place small{display:block;color:var(--muted);font-size:10px;margin-top:4px}.place-actions{display:flex;gap:4px}.mini{background:#f5f6f7;border-radius:7px;padding:6px 8px;font-size:10px;color:#59636e}.side-field{margin-top:15px}.side-field label,.field label{font-size:10px;color:var(--muted);display:block;margin-bottom:6px;font-weight:700}.side-field input,.side-field textarea,.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:12px;background:white}.side-field textarea,.field textarea{resize:vertical;min-height:65px}.add-place{display:flex;gap:7px;margin-top:15px}.add-place input{flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:11px}.add-place button{background:var(--accent);color:white;border-radius:9px;padding:0 13px;font-size:11px;font-weight:700}
-.place-library{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.library-item{background:white;border:1px solid var(--line);border-radius:13px;padding:14px}.library-item strong{font-size:12px}.library-item p{font-size:10px;color:var(--muted);margin:6px 0}.library-item .row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-.modal-back{position:fixed;inset:0;background:rgba(20,27,32,.38);display:none;align-items:center;justify-content:center;padding:18px;z-index:10}.modal-back.show{display:flex}.modal{background:white;width:min(480px,100%);border-radius:18px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.18)}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.modal-head h3{margin:0;font-size:17px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field.full{grid-column:1/-1}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#263a35;color:white;padding:11px 16px;border-radius:30px;font-size:11px;opacity:0;pointer-events:none;transition:.25s;z-index:20}.toast.show{opacity:1}
-@media(max-width:1000px){.app{grid-template-columns:205px 1fr}.day-grid{grid-template-columns:repeat(2,1fr)}.day-layout{grid-template-columns:1fr}.content-grid{grid-template-columns:1fr}}
-@media(max-width:700px){.app{display:block}.sidebar{position:sticky;top:0;z-index:5;padding:12px 14px;border-right:0;border-bottom:1px solid var(--line);display:block}.brand{padding:0 4px}.sidebar .nav-label,.side-trip{display:none}.nav{display:flex;overflow:auto;margin-top:11px}.nav button{white-space:nowrap;padding:9px 11px;font-size:11px}.main{padding:0}main{padding:20px 15px 45px}.topbar{align-items:flex-start}.topbar h1{font-size:21px}.top-actions .btn{padding:9px;font-size:10px}.hero{padding:20px;display:block}.hero h2{font-size:21px}.hero-stats{margin-top:19px;gap:24px}.stats{grid-template-columns:repeat(2,1fr);gap:9px}.stat{padding:13px}.stat strong{font-size:19px}.day-grid{grid-template-columns:1fr}.place-library{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+:root{--bg:#f5f6f8;--panel:#fff;--ink:#20242c;--muted:#7b8492;--line:#e8ebef;--accent:#456b61;--soft:#e8f0ed;--radius:16px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer;border:0}
+.app{display:grid;grid-template-columns:235px minmax(0,1fr);min-height:100vh}
+.sidebar{background:white;border-right:1px solid var(--line);padding:25px 17px;display:flex;flex-direction:column;gap:28px}
+.brand{display:flex;align-items:center;gap:11px;padding:5px}
+.brand-mark{background:var(--accent);color:white;border-radius:12px;width:38px;height:38px;display:grid;place-items:center;font-size:21px}
+.brand strong{font-size:18px}
+.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:1.4px}
+.nav{display:grid;gap:5px}
+.nav button{padding:13px;text-align:left;background:transparent;border-radius:11px;color:#626b78;font-weight:650;font-size:13px}
+.nav button.active,.nav button:hover{background:var(--soft);color:var(--accent)}
+.side-trip{margin-top:auto;background:#f7f8f7;border:1px solid var(--line);border-radius:14px;padding:15px;font-size:12px}
+.side-trip strong{display:block;margin:7px 0}
+main{padding:28px 32px 55px;max-width:1450px;width:100%;margin:auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:26px}
+.eyebrow{color:var(--accent);font-size:11px;letter-spacing:1.5px;font-weight:800}
+h1{font-size:26px;margin:5px 0}
+h2{font-size:21px}
+h3{font-size:15px}
+.top-actions,.actions,.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{padding:10px 14px;background:white;border:1px solid var(--line);border-radius:10px;color:#46505a;font-size:12px;font-weight:700}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent)}
+.btn:hover{filter:brightness(.96)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hero{background:linear-gradient(115deg,#314f49,#57766d);color:white;border-radius:21px;padding:26px;display:flex;justify-content:space-between;gap:20px;align-items:center}
+.hero h2{font-size:25px;margin:8px 0}
+.hero p{color:#d9e5df;font-size:12px}
+.hero-stats{display:flex;gap:23px}
+.hero-stats strong{font-size:26px;display:block}
+.hero-stats small{font-size:10px;color:#d9e5df}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:17px 0 25px}
+.stat,.panel,.day-card,.day-main,.day-side,.library-item{background:white;border:1px solid var(--line);border-radius:var(--radius);padding:17px}
+.stat small{color:var(--muted);font-size:11px}
+.stat strong{display:block;font-size:23px;margin-top:8px}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin:23px 0 12px;gap:10px}
+.section-head h3{margin:0}
+.section-head p,.muted{font-size:11px;color:var(--muted)}
+.day-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.day-card{cursor:pointer;min-height:135px}
+.day-card:hover{border-color:#aac2b7}
+.day-card h3{margin:15px 0 6px}
+.day-card p{font-size:11px;color:var(--muted);line-height:1.6}
+.day-card .bottom{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:11px;margin-top:14px;font-size:11px;color:var(--muted)}
+.pill{display:inline-block;background:var(--soft);color:var(--accent);padding:5px 9px;border-radius:20px;font-size:10px}
+.content-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.view{display:none}
+.view.active{display:block}
+.day-tabs{display:flex;gap:7px;overflow:auto;padding:5px 0 15px}
+.day-tab{white-space:nowrap;padding:10px 13px;border:1px solid var(--line);background:white;border-radius:10px;color:#66717d;font-size:11px;font-weight:700}
+.day-tab.active{background:var(--accent);color:white}
+.day-layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:15px}
+.day-main h2{margin:7px 0}
+.day-side h3{margin:0}
+.place-list{display:grid;gap:9px;margin-top:18px}
+.place{display:flex;align-items:center;gap:11px;border:1px solid var(--line);border-radius:12px;padding:11px}
+.place-number{flex:0 0 30px;height:30px;display:grid;place-items:center;background:var(--soft);color:var(--accent);border-radius:9px;font-size:11px;font-weight:800}
+.place-info{flex:1;min-width:0}
+.place-info strong{display:block;font-size:12px}
+.place-info small{display:block;color:var(--muted);font-size:10px;margin-top:5px;overflow-wrap:anywhere}
+.place-actions{display:flex;gap:4px;flex-wrap:wrap}
+.mini{background:#f3f5f6;border-radius:7px;padding:7px;font-size:10px;color:#59636e}
+.field{margin-top:14px}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.field input,.field select,.field textarea,.toolbar input,.toolbar select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;background:white;font-size:12px}
+.field textarea{resize:vertical;min-height:75px}
+.toolbar input,.toolbar select{width:auto;max-width:100%}
+.quick-add{display:flex;gap:7px;margin-top:12px}
+.quick-add input{flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:12px}
+.library-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-top:16px}
+.library-item strong{font-size:13px}
+.library-item p{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.library-item .bottom{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.check-item{display:flex;align-items:center;gap:10px;margin:13px 0;font-size:12px}
+.check-item input{accent-color:var(--accent)}
+.empty{padding:25px;text-align:center;color:var(--muted);font-size:12px}
+.route-box{margin-top:23px;padding:17px;border:1px solid #d9e6df;background:#f8fbf9;border-radius:15px}
+.route-box h3{margin:0 0 6px}
+.route-box p{font-size:11px;color:var(--muted);line-height:1.6}
+.route-items{display:grid;gap:8px;margin:13px 0}
+.route-option{display:flex;gap:9px;align-items:center;background:white;border:1px solid var(--line);padding:10px;border-radius:9px;font-size:12px}
+.route-option input{accent-color:var(--accent)}
+.route-result{margin-top:14px;font-size:12px;line-height:1.8}
+.route-result ol{padding-left:23px}
+.route-result li{padding:4px 0}
+.route-result small{display:block;color:var(--muted)}
+.route-note{color:#9b6b31;font-size:11px}
+.modal-back{position:fixed;inset:0;background:#141b2066;display:none;align-items:center;justify-content:center;padding:15px;z-index:10}
+.modal-back.show{display:flex}
+.modal{background:white;width:min(520px,100%);max-height:95vh;overflow:auto;padding:23px;border-radius:17px}
+.modal-head{display:flex;justify-content:space-between;align-items:center}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.full{grid-column:1/-1}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#263a35;color:white;padding:12px 18px;border-radius:30px;font-size:12px;display:none;z-index:20}
+@media(max-width:1000px){.day-layout{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:720px){.app{display:block}.sidebar{padding:12px;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}.side-trip{display:none}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;padding:10px;font-size:11px}main{padding:18px 14px 40px}.topbar{align-items:flex-start}.topbar h1{font-size:20px}.hero{display:block}.hero-stats{margin-top:17px}.day-grid,.content-grid,.library-grid{grid-template-columns:1fr}.place{flex-wrap:wrap}.place-actions{margin-left:40px}.modal-grid{grid-template-columns:1fr}.full{grid-column:auto}}
 </style>
 </head>
 <body>
 <div class="app">
 <aside class="sidebar">
-  <div class="brand"><div class="brand-mark">✦</div><div><strong>tripnote</strong><small>YOUR TRAVEL SPACE</small></div></div>
-  <div><div class="nav-label">WORKSPACE</div><nav class="nav">
-    <button class="active" data-view="overview"><span class="ico">▦</span>대시보드</button>
-    <button data-view="itinerary"><span class="ico">☷</span>날짜별 일정</button>
-    <button data-view="places"><span class="ico">⌖</span>장소 보관함</button>
-  </nav></div>
-  <div class="side-trip"><small>UPCOMING TRIP</small><strong>Osaka & Kobe</strong><span>5박 6일 · Japan</span></div>
+  <div class="brand">
+    <div class="brand-mark">✦</div>
+    <div><strong>tripnote</strong><small>YOUR TRAVEL SPACE</small></div>
+  </div>
+  <nav class="nav">
+    <button class="active" data-view="overview">▦ 대시보드</button>
+    <button data-view="itinerary">☷ 날짜별 일정</button>
+    <button data-view="places">⌖ 장소 보관함</button>
+  </nav>
+  <div class="side-trip">
+    <small>UPCOMING TRIP</small>
+    <strong>Osaka & Kobe</strong>
+    <span>5박 6일 · Japan</span>
+  </div>
 </aside>
+
 <main>
-  <div class="topbar"><div><div class="eyebrow">TRAVEL WORKSPACE / 01</div><h1 id="pageTitle">여행 대시보드</h1></div><div class="top-actions"><button class="btn" id="importBtn">가져오기</button><button class="btn primary" id="exportBtn">공유용 내보내기 ↗</button><input type="file" id="fileInput" accept=".json,application/json" hidden></div></div>
+  <div class="topbar">
+    <div>
+      <div class="eyebrow">TRAVEL WORKSPACE / 01</div>
+      <h1 id="pageTitle">여행 대시보드</h1>
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="importBtn">가져오기</button>
+      <button class="btn primary" id="exportBtn">JSON 백업 ↗</button>
+      <input type="file" id="fileInput" accept=".json" hidden>
+    </div>
+  </div>
+
   <section class="view active" id="overview">
-    <div class="hero"><div><div class="eyebrow">YOUR NEXT ADVENTURE</div><h2>Osaka <span style="color:#b8d0c7">&</span> Kobe</h2><p>좋아하는 장소를 모으고, 우리만의 여행 동선을 만들어 보세요.</p></div><div class="hero-stats"><div class="hero-stat"><strong>06</strong><span>DAYS</span></div><div class="hero-stat"><strong>05</strong><span>NIGHTS</span></div><div class="hero-stat"><strong>02</strong><span>CITIES</span></div></div></div>
-    <div class="stats"><div class="stat"><label>전체 일정</label><strong id="statPlaces">1<em>개 장소</em></strong></div><div class="stat"><label>필수 방문</label><strong id="statMust">1<em>개 장소</em></strong></div><div class="stat"><label>등록한 식당</label><strong id="statFood">0<em>곳</em></strong></div><div class="stat"><label>예약 확인</label><strong id="statBooking">0<em>건</em></strong></div></div>
-    <div class="section-head"><div><h3>여행 일정 한눈에 보기</h3><p>날짜 카드를 선택하면 해당 일정을 편집할 수 있습니다.</p></div><button class="btn" onclick="showView('itinerary')">일정 관리 →</button></div>
+    <div class="hero">
+      <div>
+        <div class="eyebrow" style="color:#d6e5df">YOUR NEXT ADVENTURE</div>
+        <h2>Osaka & Kobe</h2>
+        <p>가고 싶은 장소를 모으고, 자유롭게 여행 동선을 만들어 보세요.</p>
+      </div>
+      <div class="hero-stats">
+        <div><strong>06</strong><small>DAYS</small></div>
+        <div><strong>05</strong><small>NIGHTS</small></div>
+        <div><strong>02</strong><small>CITIES</small></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><small>전체 장소</small><strong id="statPlaces">0</strong></div>
+      <div class="stat"><small>필수 방문</small><strong id="statMust">0</strong></div>
+      <div class="stat"><small>등록한 식당</small><strong id="statFood">0</strong></div>
+      <div class="stat"><small>예약 확인 필요</small><strong id="statBooking">0</strong></div>
+    </div>
+    <div class="section-head">
+      <div><h3>여행 일정 한눈에 보기</h3><p>날짜 카드를 누르면 일정을 편집할 수 있습니다.</p></div>
+      <button class="btn" onclick="showView('itinerary')">일정 관리 →</button>
+    </div>
     <div class="day-grid" id="overviewDays"></div>
-    <div class="content-grid"><div class="panel"><h3>여행 준비 체크</h3><div class="panel-sub">확정되는 대로 하나씩 체크해 보세요.</div><div id="checklist" class="quick-list"></div></div><div class="panel"><h3>여행 메모</h3><div class="panel-sub">두 사람이 함께 기억할 내용을 적어두세요.</div><div class="side-field"><textarea id="globalMemo" placeholder="예: 항공편 시간, 예산, 꼭 먹고 싶은 음식..." style="min-height:105px"></textarea></div><div style="text-align:right;margin-top:8px"><button class="btn primary" id="saveMemo">메모 저장</button></div></div></div>
+    <div class="content-grid">
+      <div class="panel">
+        <h3>여행 준비 체크</h3>
+        <div id="checklist"></div>
+      </div>
+      <div class="panel">
+        <h3>여행 메모</h3>
+        <div class="field">
+          <textarea id="globalMemo" placeholder="항공편, 예산, 꼭 먹고 싶은 음식 등"></textarea>
+        </div>
+        <button class="btn primary" id="saveMemo">메모 저장</button>
+      </div>
+    </div>
   </section>
+
   <section class="view" id="itinerary">
-    <div class="section-head"><div><h3>날짜별 일정</h3><p>시간표 대신 지역과 방문 장소를 중심으로 자유롭게 구성합니다.</p></div><button class="btn primary" id="addPlaceTop">＋ 장소 추가</button></div>
+    <div class="section-head">
+      <div><h3>날짜별 일정</h3><p>방문 장소와 동선을 자유롭게 구성하세요.</p></div>
+      <button class="btn primary" id="addPlaceTop">＋ 장소 추가</button>
+    </div>
     <div class="day-tabs" id="dayTabs"></div>
-    <div class="day-layout"><div class="day-main"><div class="eyebrow" id="dayEyebrow">DAY 01</div><h2 id="dayTitle">오사카 도착</h2><div class="desc" id="dayDesc">지역을 중심으로 장소를 모아보세요.</div><div class="place-list" id="dayPlaces"></div></div><aside class="day-side"><h3 style="margin:0;font-size:14px">하루 기본 정보</h3><div class="side-field"><label>방문 지역</label><select id="dayArea"><option>오사카</option><option>고베</option><option>교토</option><option>나라</option><option>USJ</option><option>이동일</option><option>미정</option></select></div><div class="side-field"><label>도착 예정 시간</label><input id="dayArrival" placeholder="예: 오전 11시 / 미정"></div><div class="side-field"><label>하루 메모</label><textarea id="dayMemo" placeholder="체크인, 이동 계획, 예약 정보 등"></textarea></div><button class="btn primary" style="width:100%;margin-top:14px" id="saveDay">하루 정보 저장</button><div style="border-top:1px solid var(--line);margin-top:18px;padding-top:16px"><h3 style="font-size:12px;margin:0 0 7px">빠른 장소 등록</h3><div class="add-place"><input id="quickPlace" placeholder="장소 이름"><button id="quickAdd">추가</button></div><div class="panel-sub">장소 유형과 우선순위는 등록 후 수정할 수 있습니다.</div></div></aside></div>
+    <div class="day-layout">
+      <div class="day-main">
+        <div class="eyebrow" id="dayEyebrow">DAY 01</div>
+        <h2 id="dayTitle">고베 도착</h2>
+        <div class="muted" id="dayDesc"></div>
+        <div class="place-list" id="dayPlaces"></div>
+
+        <div class="route-box">
+          <h3>🧭 날짜별 동선 추천</h3>
+          <p>방문할 장소를 선택하면 대략적인 직선거리를 기준으로 이동 순서를 추천합니다.</p>
+          <div class="field">
+            <label>출발 장소</label>
+            <select id="routeStart">
+              <option value="auto">자동 선택 (해당 날짜 지역)</option>
+              <option value="sannomiya">고베 산노미야역</option>
+              <option value="namba">오사카 난바역</option>
+              <option value="umeda">오사카역 · 우메다</option>
+              <option value="kyoto">교토역</option>
+            </select>
+          </div>
+          <div class="route-items" id="routeChoices"></div>
+          <div class="actions">
+            <button class="btn primary" id="recommendBtn">동선 추천</button>
+            <button class="btn" id="applyRouteBtn" disabled>추천 순서 적용</button>
+            <button class="btn" id="mapRouteBtn" disabled>Google Maps ↗</button>
+          </div>
+          <div class="route-result" id="routeResult">장소를 선택해 주세요.</div>
+        </div>
+      </div>
+
+      <aside class="day-side">
+        <h3>하루 기본 정보</h3>
+        <div class="field">
+          <label>방문 지역</label>
+          <select id="dayArea">
+            <option>오사카</option><option>고베</option><option>교토</option>
+            <option>나라</option><option>USJ</option><option>이동일</option><option>미정</option>
+          </select>
+        </div>
+        <div class="field"><label>도착 예정 시간</label><input id="dayArrival" placeholder="예: 오전 11시 / 미정"></div>
+        <div class="field"><label>하루 메모</label><textarea id="dayMemo"></textarea></div>
+        <button class="btn primary" style="width:100%;margin-top:13px" id="saveDay">하루 정보 저장</button>
+        <hr style="border:0;border-top:1px solid var(--line);margin:20px 0">
+        <h3>빠른 장소 등록</h3>
+        <div class="quick-add">
+          <input id="quickPlace" placeholder="장소 이름">
+          <button class="btn primary" id="quickAdd">추가</button>
+        </div>
+        <p class="muted">장소를 등록한 후 주소와 좌표를 입력하면 동선 추천에 활용할 수 있습니다.</p>
+      </aside>
+    </div>
   </section>
+
   <section class="view" id="places">
-    <div class="section-head"><div><h3>장소 보관함</h3><p>관광지, 식당, 카페 등 가고 싶은 곳을 모아두세요.</p></div><button class="btn primary" id="addPlaceLibrary">＋ 장소 등록</button></div>
-    <div class="toolbar"><input id="searchPlaces" placeholder="장소 이름 검색..." style="min-width:220px"><select id="filterType"><option value="">모든 유형</option><option>관광지</option><option>식당</option><option>카페</option><option>쇼핑</option><option>기타</option></select><select id="filterStatus"><option value="">모든 우선순위</option><option>필수</option><option>후보</option><option>예비</option></select></div>
-    <div class="place-library" id="libraryList"></div>
+    <div class="section-head">
+      <div><h3>장소 보관함</h3><p>관광지, 식당, 카페 등 가고 싶은 곳을 모아두세요.</p></div>
+      <button class="btn primary" id="addPlaceLibrary">＋ 장소 등록</button>
+    </div>
+    <div class="toolbar">
+      <input id="searchPlaces" placeholder="장소 이름 검색">
+      <select id="filterType">
+        <option value="">모든 유형</option><option>관광지</option><option>식당</option>
+        <option>카페</option><option>쇼핑</option><option>기타</option>
+      </select>
+      <select id="filterStatus">
+        <option value="">모든 우선순위</option><option>필수</option><option>후보</option><option>예비</option>
+      </select>
+    </div>
+    <div class="library-grid" id="libraryList"></div>
   </section>
 </main>
 </div>
-<div class="modal-back" id="modalBack"><div class="modal"><div class="modal-head"><h3 id="modalTitle">장소 등록</h3><button class="iconbtn" id="closeModal">✕</button></div><div class="form-grid">
-  <div class="field full"><label>장소 이름 *</label><input id="fName" placeholder="예: 도톤보리"></div>
-  <div class="field"><label>유형</label><select id="fType"><option>관광지</option><option>식당</option><option>카페</option><option>쇼핑</option><option>기타</option></select></div>
-  <div class="field"><label>우선순위</label><select id="fStatus"><option>필수</option><option selected>후보</option><option>예비</option></select></div>
-  <div class="field"><label>방문 날짜</label><select id="fDay"></select></div>
-  <div class="field"><label>지역</label><select id="fArea"><option>오사카</option><option>고베</option><option>교토</option><option>나라</option><option>USJ</option><option>미정</option></select></div>
-  <div class="field full"><label>주소 / 위치 메모</label><input id="fAddress" placeholder="역 이름, 주소 또는 지도 링크"></div>
-  <div class="field"><label>가격대</label><input id="fPrice" placeholder="예: 1,500~2,000엔"></div>
-  <div class="field"><label>예약 상태</label><select id="fBooking"><option>예약 불필요</option><option>예약 필요</option><option>예약 완료</option><option>확인 필요</option></select></div>
-  <div class="field full"><label>메모</label><textarea id="fMemo" placeholder="먹고 싶은 메뉴, 영업시간, 참고 링크 등"></textarea></div>
-</div><div class="modal-actions"><button class="btn" id="cancelModal">취소</button><button class="btn primary" id="savePlace">저장하기</button></div></div></div>
+
+<div class="modal-back" id="modalBack">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">장소 등록</h3>
+      <button class="btn" id="closeModal">✕</button>
+    </div>
+    <div class="modal-grid">
+      <div class="field full"><label>장소 이름 *</label><input id="fName" placeholder="예: 도톤보리"></div>
+      <div class="field"><label>유형</label><select id="fType"><option>관광지</option><option>식당</option><option>카페</option><option>쇼핑</option><option>기타</option></select></div>
+      <div class="field"><label>우선순위</label><select id="fStatus"><option>필수</option><option selected>후보</option><option>예비</option></select></div>
+      <div class="field"><label>방문 날짜</label><select id="fDay"></select></div>
+      <div class="field"><label>지역</label><select id="fArea"><option>오사카</option><option>고베</option><option>교토</option><option>나라</option><option>USJ</option><option>미정</option></select></div>
+      <div class="field full"><label>주소 / 위치 메모</label><input id="fAddress" placeholder="일본어 주소 또는 역 이름"></div>
+      <div class="field"><label>위도 (선택)</label><input id="fLat" type="number" step="any" placeholder="34.6687"></div>
+      <div class="field"><label>경도 (선택)</label><input id="fLng" type="number" step="any" placeholder="135.5013"></div>
+      <div class="field"><label>가격대</label><input id="fPrice" placeholder="예: 2,000엔"></div>
+      <div class="field"><label>예약 상태</label><select id="fBooking"><option>예약 불필요</option><option>예약 필요</option><option>예약 완료</option><option>확인 필요</option></select></div>
+      <div class="field full"><label>메모</label><textarea id="fMemo"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelModal">취소</button>
+      <button class="btn primary" id="savePlace">저장하기</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
+
 <script>
-const KEY='tripnote_osaka_kobe_v2';
+"use strict";
+
+const KEY="tripnote_osaka_kobe_v2";
+
 const seed={
- days:[
-  {area:'고베',arrival:'',memo:'고베 도착 · 산노미야역 근처 호텔 숙박',places:[]},
-  {area:'이동일',arrival:'',memo:'고베에서 오사카로 이동 · 오사카 숙소 체크인',places:[]},
-  {area:'오사카',arrival:'',memo:'오사카 또는 교토 중 선택',places:[]},
-  {area:'오사카',arrival:'',memo:'오사카 또는 교토 중 선택',places:[]},
-  {area:'오사카',arrival:'',memo:'오사카 관광 · USJ 방문일 후보 (DAY 3~5 사이 이동 가능)',places:[{id:'p-usj',name:'유니버설 스튜디오 재팬',type:'관광지',status:'필수',address:'Universal City, Osaka',price:'',booking:'확인 필요',memo:'방문일은 DAY 3~5 중 조정 · 입장권 및 익스프레스 패스 검토'}]},
-  {area:'오사카',arrival:'',memo:'귀국일 · 항공편 시간에 맞춰 공항 이동',places:[]}
- ],
- checklist:[{text:'항공권 및 출발·귀국 시간 확인',done:false},{text:'고베 산노미야 호텔 예약',done:false},{text:'오사카 숙소 예약',done:false},{text:'USJ 입장권 확인',done:false},{text:'USJ 익스프레스 패스 검토',done:false},{text:'고베 → 오사카 이동 방법 확인',done:false},{text:'공항 이동 방법 확인',done:false}],
- memo:''
+  days:[
+    {area:"고베",arrival:"",memo:"고베 도착 · 산노미야역 근처 호텔 숙박",places:[]},
+    {area:"이동일",arrival:"",memo:"고베에서 오사카로 이동 · 오사카 숙소 체크인",places:[]},
+    {area:"오사카",arrival:"",memo:"오사카 또는 교토 중 선택",places:[]},
+    {area:"오사카",arrival:"",memo:"오사카 또는 교토 중 선택",places:[]},
+    {area:"오사카",arrival:"",memo:"오사카 관광 · USJ 방문일 후보",places:[
+      {id:"p-usj",name:"유니버설 스튜디오 재팬",type:"관광지",status:"필수",
+       area:"USJ",address:"Universal City, Osaka",price:"",
+       booking:"확인 필요",memo:"방문일은 DAY 3~5 중 조정"}
+    ]},
+    {area:"오사카",arrival:"",memo:"귀국일 · 항공편 시간에 맞춰 공항 이동",places:[]}
+  ],
+  checklist:[
+    {text:"항공권 및 출발·귀국 시간 확인",done:false},
+    {text:"고베 산노미야 호텔 예약",done:false},
+    {text:"오사카 숙소 예약",done:false},
+    {text:"USJ 입장권 확인",done:false},
+    {text:"USJ 익스프레스 패스 검토",done:false},
+    {text:"고베 → 오사카 이동 방법 확인",done:false},
+    {text:"공항 이동 방법 확인",done:false}
+  ],
+  memo:""
 };
-let data=load(), selectedDay=0, editingId=null;
-function load(){try{return JSON.parse(localStorage.getItem(KEY))||structuredClone(seed)}catch(e){return structuredClone(seed)}}
-function save(){localStorage.setItem(KEY,JSON.stringify(data));render();toast('변경 사항을 이 브라우저에 저장했습니다.')}
-function allPlaces(){return data.days.flatMap((d,i)=>d.places.map(p=>({...p,day:i})))}
-function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
-function showView(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===v));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.view===v));document.getElementById('pageTitle').textContent=({overview:'여행 대시보드',itinerary:'날짜별 일정',places:'장소 보관함'})[v];if(v==='itinerary')renderDay();if(v==='places')renderLibrary()}
-document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+})[c]);
+
+function load(){
+  try{
+    const x=JSON.parse(localStorage.getItem(KEY));
+    return x&&Array.isArray(x.days)&&x.days.length===6?x:structuredClone(seed);
+  }catch(e){return structuredClone(seed)}
+}
+
+let data=load();
+let selectedDay=0;
+let editingId=null;
+let routeSelection={};
+let recommended=null;
+
+function notify(message){
+  const el=$("toast");
+  el.textContent=message;
+  el.style.display="block";
+  clearTimeout(notify.timer);
+  notify.timer=setTimeout(()=>el.style.display="none",2400);
+}
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(data));
+  render();
+  notify("브라우저에 저장했습니다.");
+}
+
+function allPlaces(){
+  return data.days.flatMap((d,day)=>d.places.map(p=>({...p,day})));
+}
+
+function dayName(i,d){
+  if(i===0)return "고베 도착";
+  if(i===1)return "고베 → 오사카";
+  if(i===5)return "오사카 → 한국";
+  return d.area==="USJ"?"USJ 방문":d.area+" 일정";
+}
+
+function showView(view){
+  document.querySelectorAll(".view").forEach(el=>
+    el.classList.toggle("active",el.id===view));
+  document.querySelectorAll(".nav button").forEach(el=>
+    el.classList.toggle("active",el.dataset.view===view));
+  $("pageTitle").textContent={
+    overview:"여행 대시보드",
+    itinerary:"날짜별 일정",
+    places:"장소 보관함"
+  }[view];
+  if(view==="itinerary")renderDay();
+  if(view==="places")renderLibrary();
+}
+
+document.querySelectorAll(".nav button").forEach(b=>{
+  b.onclick=()=>showView(b.dataset.view);
+});
+
 function render(){
- const ps=allPlaces();document.getElementById('statPlaces').innerHTML=ps.length+'<em>개 장소</em>';document.getElementById('statMust').innerHTML=ps.filter(p=>p.status==='필수').length+'<em>개 장소</em>';document.getElementById('statFood').innerHTML=ps.filter(p=>p.type==='식당').length+'<em>곳</em>';document.getElementById('statBooking').innerHTML=ps.filter(p=>['예약 필요','확인 필요'].includes(p.booking)).length+'<em>건</em>';
- document.getElementById('overviewDays').innerHTML=data.days.map((d,i)=>`<div class="day-card" onclick="selectedDay=${i};showView('itinerary')"><div class="day-top"><span class="day-no">DAY ${String(i+1).padStart(2,'0')}</span><span class="pill ${d.area==='고베'?'green':''}">${esc(d.area)}</span></div><h4>${i===0?'오사카 도착':i===5?'오사카 → 한국':i===1?'고베 → 오사카':d.area==='USJ'?'USJ 방문':d.area+' 일정'}</h4><p>${esc(d.memo||d.arrival||'방문 장소를 추가해 보세요.')}</p><div class="day-bottom"><span>${d.places.length}개 장소</span><span>${d.arrival?esc(d.arrival):'시간 미정'}　↗</span></div></div>`).join('');
- document.getElementById('checklist').innerHTML=data.checklist.map((c,i)=>`<label class="quick-item" style="cursor:pointer"><input type="checkbox" ${c.done?'checked':''} onchange="data.checklist[${i}].done=this.checked;save()" style="accent-color:var(--accent)"><span><strong style="${c.done?'text-decoration:line-through;color:#9aa1a9':''}">${esc(c.text)}</strong><small>${c.done?'완료':'준비 항목'}</small></span></label>`).join('');
- document.getElementById('globalMemo').value=data.memo||'';
- renderTabs();renderDay();renderLibrary();
+  const ps=allPlaces();
+  $("statPlaces").textContent=ps.length;
+  $("statMust").textContent=ps.filter(p=>p.status==="필수").length;
+  $("statFood").textContent=ps.filter(p=>p.type==="식당").length;
+  $("statBooking").textContent=ps.filter(p=>
+    ["예약 필요","확인 필요"].includes(p.booking)).length;
+
+  $("overviewDays").innerHTML=data.days.map((d,i)=>`
+    <div class="day-card" data-day="${i}">
+      <span class="pill">DAY ${i+1} · ${esc(d.area)}</span>
+      <h3>${esc(dayName(i,d))}</h3>
+      <p>${esc(d.memo||"방문 장소를 추가해 보세요.")}</p>
+      <div class="bottom">
+        <span>${d.places.length}개 장소</span>
+        <span>일정 편집 ↗</span>
+      </div>
+    </div>`).join("");
+
+  document.querySelectorAll(".day-card").forEach(el=>{
+    el.onclick=()=>{
+      selectedDay=Number(el.dataset.day);
+      showView("itinerary");
+    };
+  });
+
+  $("checklist").innerHTML=data.checklist.map((c,i)=>`
+    <label class="check-item">
+      <input type="checkbox" data-check="${i}" ${c.done?"checked":""}>
+      <span style="${c.done?"text-decoration:line-through;color:#9aa1a9":""}">
+        ${esc(c.text)}
+      </span>
+    </label>`).join("");
+
+  document.querySelectorAll("[data-check]").forEach(el=>{
+    el.onchange=()=>{
+      data.checklist[Number(el.dataset.check)].done=el.checked;
+      save();
+    };
+  });
+
+  $("globalMemo").value=data.memo||"";
+  renderDay();
+  renderLibrary();
 }
-function renderTabs(){document.getElementById('dayTabs').innerHTML=data.days.map((d,i)=>`<button class="day-tab ${selectedDay===i?'active':''}" onclick="selectedDay=${i};renderDay()">${'DAY '+(i+1)} · ${esc(d.area)}</button>`).join('')}
+
+function renderTabs(){
+  $("dayTabs").innerHTML=data.days.map((d,i)=>`
+    <button class="day-tab ${i===selectedDay?"active":""}" data-tab="${i}">
+      DAY ${i+1} · ${esc(d.area)}
+    </button>`).join("");
+
+  document.querySelectorAll("[data-tab]").forEach(b=>{
+    b.onclick=()=>{
+      selectedDay=Number(b.dataset.tab);
+      recommended=null;
+      renderDay();
+    };
+  });
+}
+
 function renderDay(){
- const d=data.days[selectedDay];if(!d)return;renderTabs();
- document.getElementById('dayEyebrow').textContent='DAY '+String(selectedDay+1).padStart(2,'0');
- document.getElementById('dayTitle').textContent=selectedDay===0?'오사카 도착':selectedDay===5?'오사카 → 한국':selectedDay===1?'고베 → 오사카':d.area==='USJ'?'유니버설 스튜디오 재팬':d.area+' 일정';
- document.getElementById('dayDesc').textContent='장소를 직접 추가하고 위아래 버튼으로 순서를 조정하세요.';
- document.getElementById('dayArea').value=d.area;document.getElementById('dayArrival').value=d.arrival;document.getElementById('dayMemo').value=d.memo;
- document.getElementById('dayPlaces').innerHTML=d.places.length?d.places.map((p,i)=>`<div class="place"><div class="place-number">${i+1}</div><div><strong>${esc(p.name)}</strong><small>${esc(p.type)} · ${esc(p.status)}${p.address?' · '+esc(p.address):''}</small></div><div class="place-actions"><button class="mini" onclick="movePlace(${i},-1)" title="위로">↑</button><button class="mini" onclick="movePlace(${i},1)" title="아래로">↓</button><button class="mini" onclick="editPlace('${p.id}')">수정</button></div></div>`).join(''):'<div class="empty">아직 등록된 장소가 없습니다.<br>오른쪽에서 가보고 싶은 곳을 추가해 보세요.</div>';
+  const d=data.days[selectedDay];
+  if(!d)return;
+  renderTabs();
+  $("dayEyebrow").textContent="DAY "+String(selectedDay+1).padStart(2,"0");
+  $("dayTitle").textContent=dayName(selectedDay,d);
+  $("dayDesc").textContent="방문 장소를 추가하고 순서를 자유롭게 조정하세요.";
+  $("dayArea").value=d.area;
+  $("dayArrival").value=d.arrival||"";
+  $("dayMemo").value=d.memo||"";
+
+  $("dayPlaces").innerHTML=d.places.length?d.places.map((p,i)=>`
+    <div class="place">
+      <div class="place-number">${i+1}</div>
+      <div class="place-info">
+        <strong>${esc(p.name)}</strong>
+        <small>${esc(p.type)} · ${esc(p.status)}
+          ${p.address?" · "+esc(p.address):""}</small>
+      </div>
+      <div class="place-actions">
+        <button class="mini" data-move="${i}" data-dir="-1">↑</button>
+        <button class="mini" data-move="${i}" data-dir="1">↓</button>
+        <button class="mini" data-edit="${esc(p.id)}">수정</button>
+      </div>
+    </div>`).join(""):
+    '<div class="empty">아직 등록된 장소가 없습니다.</div>';
+
+  document.querySelectorAll("[data-move]").forEach(b=>{
+    b.onclick=()=>movePlace(Number(b.dataset.move),Number(b.dataset.dir));
+  });
+  document.querySelectorAll("#dayPlaces [data-edit]").forEach(b=>{
+    b.onclick=()=>editPlace(b.dataset.edit);
+  });
+
+  renderRouteChoices();
 }
-document.getElementById('saveDay').onclick=()=>{let d=data.days[selectedDay];d.area=document.getElementById('dayArea').value;d.arrival=document.getElementById('dayArrival').value;d.memo=document.getElementById('dayMemo').value;save()};
-document.getElementById('quickAdd').onclick=()=>{let n=document.getElementById('quickPlace').value.trim();if(!n)return;data.days[selectedDay].places.push({id:crypto.randomUUID(),name:n,type:'관광지',status:'후보',address:'',price:'',booking:'확인 필요',memo:''});document.getElementById('quickPlace').value='';save()};
-document.getElementById('quickPlace').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('quickAdd').click()});
-function movePlace(i,dir){let a=data.days[selectedDay].places,j=i+dir;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];save()}
-function openModal(p=null,day=selectedDay){editingId=p?.id||null;document.getElementById('modalTitle').textContent=p?'장소 수정':'장소 등록';['fName','fAddress','fPrice','fMemo'].forEach((id)=>document.getElementById(id).value=p?({fName:p.name,fAddress:p.address,fPrice:p.price,fMemo:p.memo})[id]||'':'');document.getElementById('fType').value=p?.type||'관광지';document.getElementById('fStatus').value=p?.status||'후보';document.getElementById('fArea').value=p?.area||data.days[day].area;document.getElementById('fBooking').value=p?.booking||'확인 필요';document.getElementById('fDay').innerHTML=data.days.map((d,i)=>`<option value="${i}">DAY ${i+1} · ${esc(d.area)}</option>`).join('');document.getElementById('fDay').value=p?.day??day;document.getElementById('modalBack').classList.add('show')}
-function editPlace(id){let p=allPlaces().find(x=>x.id===id);if(p)openModal(p,p.day)}
-function closeModal(){document.getElementById('modalBack').classList.remove('show')}
-['closeModal','cancelModal'].forEach(id=>document.getElementById(id).onclick=closeModal);
-document.getElementById('savePlace').onclick=()=>{let name=document.getElementById('fName').value.trim();if(!name){toast('장소 이름을 입력해 주세요.');return}let day=+document.getElementById('fDay').value;let p={id:editingId||crypto.randomUUID(),name,type:document.getElementById('fType').value,status:document.getElementById('fStatus').value,area:document.getElementById('fArea').value,address:document.getElementById('fAddress').value,price:document.getElementById('fPrice').value,booking:document.getElementById('fBooking').value,memo:document.getElementById('fMemo').value};if(editingId){data.days.forEach(d=>d.places=d.places.filter(x=>x.id!==editingId))}data.days[day].places.push(p);selectedDay=day;closeModal();save()};
-document.getElementById('addPlaceTop').onclick=()=>openModal();document.getElementById('addPlaceLibrary').onclick=()=>openModal(null,selectedDay);
-function renderLibrary(){let q=(document.getElementById('searchPlaces')?.value||'').toLowerCase(),t=document.getElementById('filterType')?.value||'',s=document.getElementById('filterStatus')?.value||'';let ps=allPlaces().filter(p=>(p.name.toLowerCase().includes(q)||p.address?.toLowerCase().includes(q))&&(!t||p.type===t)&&(!s||p.status===s));document.getElementById('libraryList').innerHTML=ps.length?ps.map(p=>`<div class="library-item"><div style="display:flex;justify-content:space-between;gap:8px"><strong>${esc(p.name)}</strong><span class="pill ${p.status==='필수'?'green':''}">${esc(p.status)}</span></div><p>${esc(p.type)} · DAY ${p.day+1} · ${esc(p.area||'')}</p><p>${esc(p.address||p.memo||'추가 메모 없음')}</p><div class="row"><small style="color:var(--muted)">${esc(p.booking)}</small><div><button class="mini" onclick="editPlace('${p.id}')">수정</button><button class="mini" onclick="deletePlace('${p.id}')">삭제</button></div></div></div>`).join(''):'<div class="empty" style="grid-column:1/-1">조건에 맞는 장소가 없습니다.</div>'}
-function deletePlace(id){if(!confirm('이 장소를 삭제할까요?'))return;data.days.forEach(d=>d.places=d.places.filter(p=>p.id!==id));save()}
-['searchPlaces','filterType','filterStatus'].forEach(id=>document.getElementById(id).addEventListener('input',renderLibrary));
-document.getElementById('saveMemo').onclick=()=>{data.memo=document.getElementById('globalMemo').value;save()};
-document.getElementById('exportBtn').onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tripnote-osaka-kobe.json';a.click();URL.revokeObjectURL(a.href);toast('공유용 파일을 내보냈습니다.')};
-document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();
-document.getElementById('fileInput').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!Array.isArray(x.days)||x.days.length!==6)throw Error();data=x;save();toast('여행 데이터를 불러왔습니다.')}catch(err){alert('올바른 Tripnote 백업 파일이 아닙니다.')}e.target.value=''};r.readAsText(f)};
+
+function movePlace(i,dir){
+  const a=data.days[selectedDay].places,j=i+dir;
+  if(j<0||j>=a.length)return;
+  [a[i],a[j]]=[a[j],a[i]];
+  recommended=null;
+  save();
+}
+
+$("saveDay").onclick=()=>{
+  const d=data.days[selectedDay];
+  d.area=$("dayArea").value;
+  d.arrival=$("dayArrival").value;
+  d.memo=$("dayMemo").value;
+  save();
+};
+
+function newId(){
+  return crypto.randomUUID?crypto.randomUUID():"p-"+Date.now()+"-"+Math.random();
+}
+
+function quickAdd(){
+  const name=$("quickPlace").value.trim();
+  if(!name)return;
+  data.days[selectedDay].places.push({
+    id:newId(),name,type:"관광지",status:"후보",
+    area:data.days[selectedDay].area,address:"",
+    price:"",booking:"확인 필요",memo:""
+  });
+  $("quickPlace").value="";
+  save();
+}
+
+$("quickAdd").onclick=quickAdd;
+$("quickPlace").onkeydown=e=>{if(e.key==="Enter")quickAdd()};
+
+function openModal(p=null,day=selectedDay){
+  editingId=p?.id||null;
+  $("modalTitle").textContent=p?"장소 수정":"장소 등록";
+  $("fName").value=p?.name||"";
+  $("fType").value=p?.type||"관광지";
+  $("fStatus").value=p?.status||"후보";
+  $("fArea").value=p?.area||data.days[day].area;
+  $("fAddress").value=p?.address||"";
+  $("fLat").value=p?.lat??"";
+  $("fLng").value=p?.lng??"";
+  $("fPrice").value=p?.price||"";
+  $("fBooking").value=p?.booking||"확인 필요";
+  $("fMemo").value=p?.memo||"";
+  $("fDay").innerHTML=data.days.map((d,i)=>
+    `<option value="${i}">DAY ${i+1} · ${esc(d.area)}</option>`).join("");
+  $("fDay").value=p?.day??day;
+  $("modalBack").classList.add("show");
+}
+
+function closeModal(){
+  $("modalBack").classList.remove("show");
+}
+
+function editPlace(id){
+  const p=allPlaces().find(p=>p.id===id);
+  if(p)openModal(p,p.day);
+}
+
+$("closeModal").onclick=closeModal;
+$("cancelModal").onclick=closeModal;
+$("addPlaceTop").onclick=()=>openModal();
+$("addPlaceLibrary").onclick=()=>openModal();
+
+$("savePlace").onclick=()=>{
+  const name=$("fName").value.trim();
+  if(!name){notify("장소 이름을 입력해 주세요.");return}
+
+  const latText=$("fLat").value.trim();
+  const lngText=$("fLng").value.trim();
+  const lat=latText===""?null:Number(latText);
+  const lng=lngText===""?null:Number(lngText);
+
+  if((lat===null)!==(lng===null)||
+     (lat!==null&&(!Number.isFinite(lat)||!Number.isFinite(lng)||
+       Math.abs(lat)>90||Math.abs(lng)>180))){
+    notify("위도와 경도를 올바르게 입력해 주세요.");
+    return;
+  }
+
+  const day=Number($("fDay").value);
+  const p={
+    id:editingId||newId(),name,
+    type:$("fType").value,status:$("fStatus").value,
+    area:$("fArea").value,address:$("fAddress").value,
+    lat,lng,price:$("fPrice").value,
+    booking:$("fBooking").value,memo:$("fMemo").value
+  };
+
+  if(editingId){
+    data.days.forEach(d=>{
+      d.places=d.places.filter(x=>x.id!==editingId);
+    });
+  }
+  data.days[day].places.push(p);
+  selectedDay=day;
+  recommended=null;
+  closeModal();
+  save();
+};
+
+function deletePlace(id){
+  if(!confirm("이 장소를 삭제할까요?"))return;
+  data.days.forEach(d=>{
+    d.places=d.places.filter(p=>p.id!==id);
+  });
+  recommended=null;
+  save();
+}
+
+function renderLibrary(){
+  const q=$("searchPlaces").value.trim().toLowerCase();
+  const type=$("filterType").value;
+  const status=$("filterStatus").value;
+
+  const ps=allPlaces().filter(p=>
+    (p.name.toLowerCase().includes(q)||
+     (p.address||"").toLowerCase().includes(q))&&
+    (!type||p.type===type)&&(!status||p.status===status)
+  );
+
+  $("libraryList").innerHTML=ps.length?ps.map(p=>`
+    <div class="library-item">
+      <strong>${esc(p.name)}</strong>
+      <p>${esc(p.type)} · DAY ${p.day+1} · ${esc(p.area||"")}</p>
+      <p>${esc(p.address||p.memo||"추가 메모 없음")}</p>
+      <div class="bottom">
+        <span class="pill">${esc(p.status)}</span>
+        <div>
+          <button class="mini" data-lib-edit="${esc(p.id)}">수정</button>
+          <button class="mini" data-delete="${esc(p.id)}">삭제</button>
+        </div>
+      </div>
+    </div>`).join(""):
+    '<div class="empty">조건에 맞는 장소가 없습니다.</div>';
+
+  document.querySelectorAll("[data-lib-edit]").forEach(b=>{
+    b.onclick=()=>editPlace(b.dataset.libEdit);
+  });
+  document.querySelectorAll("[data-delete]").forEach(b=>{
+    b.onclick=()=>deletePlace(b.dataset.delete);
+  });
+}
+
+["searchPlaces","filterType","filterStatus"].forEach(id=>{
+  $(id).addEventListener("input",renderLibrary);
+});
+
+$("saveMemo").onclick=()=>{
+  data.memo=$("globalMemo").value;
+  save();
+};
+
+/* 주요 관광지의 대략적인 좌표 */
+const knownLocations=[
+  ["유니버설 스튜디오 재팬",34.6654,135.4323],
+  ["USJ",34.6654,135.4323],
+  ["도톤보리",34.6687,135.5013],
+  ["글리코상",34.6687,135.5009],
+  ["난바",34.6663,135.5011],
+  ["신사이바시",34.6750,135.5010],
+  ["오사카성",34.6873,135.5262],
+  ["우메다 스카이 빌딩",34.7053,135.4897],
+  ["우메다",34.7025,135.4959],
+  ["오사카역",34.7025,135.4959],
+  ["덴노지",34.6468,135.5136],
+  ["쓰텐카쿠",34.6525,135.5063],
+  ["신세카이",34.6522,135.5061],
+  ["가이유칸",34.6545,135.4289],
+  ["구로몬 시장",34.6656,135.5065],
+  ["덴덴타운",34.6596,135.5055],
+  ["산노미야",34.6948,135.1952],
+  ["고베 산노미야",34.6948,135.1952],
+  ["기타노이진칸",34.7008,135.1905],
+  ["이쿠타 신사",34.6947,135.1904],
+  ["고베 하버랜드",34.6795,135.1833],
+  ["메리켄 파크",34.6825,135.1885],
+  ["고베 포트타워",34.6826,135.1867],
+  ["난킨마치",34.6876,135.1880],
+  ["고베 차이나타운",34.6876,135.1880],
+  ["후시미 이나리",34.9671,135.7727],
+  ["기요미즈데라",34.9949,135.7850],
+  ["청수사",34.9949,135.7850],
+  ["기온",35.0031,135.7782],
+  ["니시키 시장",35.0050,135.7649],
+  ["아라시야마",35.0094,135.6668],
+  ["금각사",35.0394,135.7292],
+  ["나라 공원",34.6851,135.8430],
+  ["도다이지",34.6890,135.8398]
+];
+
+const starts={
+  sannomiya:{name:"고베 산노미야역",lat:34.6948,lng:135.1952},
+  namba:{name:"오사카 난바역",lat:34.6663,lng:135.5011},
+  umeda:{name:"오사카역 · 우메다",lat:34.7025,lng:135.4959},
+  kyoto:{name:"교토역",lat:34.9855,lng:135.7586}
+};
+
+function getStart(){
+  let key=$("routeStart").value;
+  if(key==="auto"){
+    const area=data.days[selectedDay].area;
+    if(selectedDay===0||area==="고베")key="sannomiya";
+    else if(area==="교토")key="kyoto";
+    else if(selectedDay===1)key="sannomiya";
+    else key="namba";
+  }
+  return starts[key];
+}
+
+function getCoords(p){
+  const lat=Number(p.lat),lng=Number(p.lng);
+  if(p.lat!==null&&p.lat!==undefined&&p.lat!==""&&
+     p.lng!==null&&p.lng!==undefined&&p.lng!==""&&
+     Number.isFinite(lat)&&Number.isFinite(lng)&&
+     Math.abs(lat)<=90&&Math.abs(lng)<=180){
+    return {lat,lng,source:"좌표"};
+  }
+  const text=(p.name+" "+(p.address||"")).toLowerCase();
+  const found=knownLocations.find(x=>text.includes(x[0].toLowerCase()));
+  return found?{lat:found[1],lng:found[2],source:"장소명"}:null;
+}
+
+function distance(a,b){
+  const r=Math.PI/180;
+  const dLat=(b.lat-a.lat)*r;
+  const dLng=(b.lng-a.lng)*r;
+  const h=Math.sin(dLat/2)**2+
+    Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLng/2)**2;
+  return 6371*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
+}
+
+function renderRouteChoices(){
+  const d=data.days[selectedDay];
+  const saved=routeSelection[selectedDay]||{};
+  $("routeChoices").innerHTML=d.places.length?d.places.map(p=>`
+    <label class="route-option">
+      <input type="checkbox" data-route-id="${esc(p.id)}"
+        ${saved[p.id]===false?"":"checked"}>
+      <span>${esc(p.name)}</span>
+      <small class="muted" style="margin-left:auto">
+        ${getCoords(p)?"위치 확인":"좌표 미등록"}
+      </small>
+    </label>`).join(""):
+    '<div class="empty">먼저 방문 장소를 등록해 주세요.</div>';
+
+  document.querySelectorAll("[data-route-id]").forEach(el=>{
+    el.onchange=()=>{
+      if(!routeSelection[selectedDay])routeSelection[selectedDay]={};
+      routeSelection[selectedDay][el.dataset.routeId]=el.checked;
+      recommended=null;
+      resetRouteResult();
+    };
+  });
+
+  resetRouteResult();
+}
+
+function resetRouteResult(){
+  $("applyRouteBtn").disabled=true;
+  $("mapRouteBtn").disabled=true;
+  $("routeResult").textContent="방문 장소를 선택하고 동선 추천을 눌러주세요.";
+}
+
+function recommendRoute(){
+  const selected=new Set(
+    [...document.querySelectorAll("[data-route-id]:checked")]
+      .map(el=>el.dataset.routeId)
+  );
+  const places=data.days[selectedDay].places.filter(p=>selected.has(p.id));
+
+  if(!places.length){
+    notify("방문할 장소를 선택해 주세요.");
+    return;
+  }
+
+  const known=[];
+  const unknown=[];
+  for(const p of places){
+    const coord=getCoords(p);
+    if(coord)known.push({...p,coord});
+    else unknown.push(p);
+  }
+
+  let current=getStart();
+  let remaining=[...known];
+  let ordered=[];
+  let total=0;
+
+  while(remaining.length){
+    remaining.sort((a,b)=>
+      distance(current,a.coord)-distance(current,b.coord)
+    );
+    const next=remaining.shift();
+    total+=distance(current,next.coord);
+    ordered.push(next);
+    current=next.coord;
+  }
+
+  recommended={
+    day:selectedDay,
+    ids:[...ordered.map(p=>p.id),...unknown.map(p=>p.id)],
+    mapped:ordered,
+    unknown,
+    start:getStart(),
+    total
+  };
+
+  let html=`<strong>추천 출발지: ${esc(recommended.start.name)}</strong>`;
+  html+="<ol>";
+  for(const p of ordered){
+    html+=`<li>${esc(p.name)}<small>위치 기반 추천</small></li>`;
+  }
+  for(const p of unknown){
+    html+=`<li>${esc(p.name)}<small>위치 미확인 · 마지막에 임시 배치</small></li>`;
+  }
+  html+="</ol>";
+  html+=`<p>좌표가 확인된 장소 ${ordered.length}곳 · 직선거리 합계 약 ${total.toFixed(1)}km</p>`;
+  html+='<p class="muted">실제 이동 시간·교통편·영업시간을 반영하지 않은 참고용 순서입니다.</p>';
+
+  if(unknown.length){
+    html+='<p class="route-note">위치를 찾지 못한 장소는 수정 화면에서 위도·경도를 입력하면 더 정확히 추천할 수 있습니다.</p>';
+  }
+
+  $("routeResult").innerHTML=html;
+  $("applyRouteBtn").disabled=false;
+  $("mapRouteBtn").disabled=ordered.length===0;
+}
+
+function applyRoute(){
+  if(!recommended||recommended.day!==selectedDay)return;
+  const d=data.days[selectedDay];
+  const ids=recommended.ids;
+  const selected=ids.map(id=>d.places.find(p=>p.id===id)).filter(Boolean);
+  const rest=d.places.filter(p=>!ids.includes(p.id));
+  d.places=[...selected,...rest];
+  recommended=null;
+  save();
+  notify("추천 순서를 일정에 적용했습니다.");
+}
+
+function openRouteMap(){
+  if(!recommended||recommended.day!==selectedDay)return;
+  const r=recommended;
+  if(!r.mapped.length)return;
+
+  const points=[
+    {lat:r.start.lat,lng:r.start.lng},
+    ...r.mapped.map(p=>p.coord)
+  ];
+
+  const loc=p=>`${p.lat},${p.lng}`;
+  const origin=loc(points[0]);
+  const destination=loc(points[points.length-1]);
+  const middle=points.slice(1,-1).map(loc);
+
+  const params=new URLSearchParams({
+    api:"1",origin,destination,travelmode:"walking"
+  });
+  if(middle.length)params.set("waypoints",middle.join("|"));
+
+  window.open(
+    "https://www.google.com/maps/dir/?"+params.toString(),
+    "_blank","noopener,noreferrer"
+  );
+}
+
+$("recommendBtn").onclick=recommendRoute;
+$("applyRouteBtn").onclick=applyRoute;
+$("mapRouteBtn").onclick=openRouteMap;
+$("routeStart").onchange=()=>{
+  recommended=null;
+  resetRouteResult();
+};
+
+$("exportBtn").onclick=()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{
+    type:"application/json"
+  });
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download="tripnote-osaka-kobe.json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+
+$("importBtn").onclick=()=>$("fileInput").click();
+$("fileInput").onchange=e=>{
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const x=JSON.parse(reader.result);
+      if(!Array.isArray(x.days)||x.days.length!==6)throw Error();
+      data=x;
+      selectedDay=0;
+      recommended=null;
+      save();
+      notify("여행 데이터를 가져왔습니다.");
+    }catch(err){
+      alert("올바른 Tripnote JSON 파일이 아닙니다.");
+    }
+    e.target.value="";
+  };
+  reader.readAsText(file);
+};
+
 render();
 </script>
-</body></html>
+</body>
+</html>
