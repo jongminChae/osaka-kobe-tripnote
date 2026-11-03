@@ -797,8 +797,7 @@ function recommendRoute(){
   html+=`<p>좌표가 확인된 장소 ${ordered.length}곳 · 직선거리 합계 약 ${total.toFixed(1)}km</p>`;
   html+='<p class="muted">실제 이동 시간·교통편·영업시간을 반영하지 않은 참고용 순서입니다.</p>';
 
-  if(unknown.length){
-    html+='<p class="route-note">위치를 찾지 못한 장소는 수정 화면에서 위도·경도를 입력하면 더 정확히 추천할 수 있습니다.</p>';
+  if(unknown.length){    html+='<p class="route-note">위치를 찾지 못한 장소는 수정 화면에서 위도·경도를 입력하면 더 정확히 추천할 수 있습니다.</p>';
   }
 
   $("routeResult").innerHTML=html;
@@ -1598,7 +1597,6 @@ render();
         openV6Place(places[0]);
         return;
       }
-
       const starts={
         sannomiya:"Sannomiya Station Kobe Japan",
         namba:"Namba Station Osaka Japan",
@@ -1682,29 +1680,6 @@ render();
  const fmt=n=>`${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}`;
  const nonneg=(value,label)=>{if(value==='')return null;const n=Number(value);if(!Number.isInteger(n)||n<0||n>1440)throw Error(label+'은(는) 0~1440분 사이의 정수여야 합니다.');return n};
  const getPlace=id=>data.days.flatMap(d=>d.places).find(p=>p.id===id);
- const panel=document.createElement('section');panel.id='v7Panel';panel.className='v7-panel';
- const anchor=el('v5DayMapPanel')||document.querySelector('#itinerary .route-box');anchor.after(panel);
- function renderSchedule(){
-  const places=data.days[selectedDay]?.places||[];
-  const scheduled=places.map((p,index)=>({...p,index,startMin:minute(p.v7Start)}));
-  const sorted=scheduled.filter(p=>p.startMin!==null).sort((a,b)=>a.startMin-b.startMin||a.index-b.index);
-  const unscheduled=scheduled.filter(p=>p.startMin===null);
-  const lines=[];
-  let previous=null;
-  for(const p of sorted){
-   const duration=Number.isInteger(p.v7Duration)?p.v7Duration:0;
-   const travel=previous&&Number.isInteger(previous.v7Travel)?previous.v7Travel:0;
-   const prevEnd=previous?previous.startMin+(Number.isInteger(previous.v7Duration)?previous.v7Duration:0):null;
-   const overlap=previous&&prevEnd+travel>p.startMin;
-   const end=p.startMin+duration;
-   const fixed=p.v7Fixed?' 🔒 예약/고정':'';
-   lines.push(`<div class="v7-line"><div class="v7-time">${fmt(p.startMin)}</div><div class="v7-detail"><strong>${esc(p.name)}</strong>${esc(fixed)}<small>체류 ${duration}분 · 종료 ${end>=1440?'다음 날 '+fmt(end%1440):fmt(end)}${previous?' · 앞 장소 이후 예상 이동 '+travel+'분':''}</small>${overlap?'<small class="v7-warning">⚠ 앞 장소 체류·이동 시간과 겹칩니다.</small>':''}</div><button class="mini" data-v7-edit="${esc(p.id)}">시간</button></div>`);
-   previous=p;
-  }
-  for(const p of unscheduled){lines.push(`<div class="v7-line"><div class="v7-time">미정</div><div class="v7-detail"><strong>${esc(p.name)}</strong><small>시작 시간이 설정되지 않았습니다.</small></div><button class="mini" data-v7-edit="${esc(p.id)}">시간</button></div>`)}
-  panel.innerHTML='<h3>🕒 오늘의 시간표</h3><p>설정한 방문 시작 시간순으로 표시합니다. 기존 방문 순서는 변경되지 않습니다. 이동 시간은 수동 입력값입니다.</p>'+(lines.join('')||'<p>장소를 추가하면 시간표를 만들 수 있습니다.</p>')+'<p class="v7-warning">참고: 시간표는 같은 날짜 내에서만 겹침을 검사하며, 이동 시간은 실제 Google Maps 소요 시간과 다를 수 있습니다.</p>';
-  panel.querySelectorAll('[data-v7-edit]').forEach(btn=>btn.onclick=()=>openEditor(btn.dataset.v7Edit));
- }
  function openEditor(id){
   const p=getPlace(id);if(!p)return;activeId=id;
   el('v7ModalTitle').textContent=p.name+' · 시간 설정';
@@ -1726,13 +1701,77 @@ render();
   p.v7Start=start;p.v7Duration=duration;p.v7Travel=travel;p.v7Fixed=el('v7Fixed').value==='true';
   closeEditor();save();
  };
- // V6 렌더 함수 위에 안전하게 래핑; 기존 지도 버튼을 유지
- const previousRenderDay=renderDay;
- renderDay=function(){previousRenderDay();renderSchedule()};
- renderSchedule();
- console.info('Tripnote V7 time itinerary loaded');
+ window.TripnoteV10OpenTimeEditor=openEditor;
+ console.info('Tripnote V10 time editor ready');
 })();
 </script>
+<!-- Tripnote V10: accommodation management (data stays under original KEY) -->
+<style>
+.v10-panel{margin-top:16px;padding:17px;border:1px solid #c9ddd3;border-radius:15px;background:#f6faf8}
+.v10-panel h3{margin:0 0 7px;font-size:15px}.v10-panel p{font-size:11px;color:#687e72;line-height:1.65}
+.v10-hotels{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.v10-hotel{padding:13px;background:#fff;border:1px solid #e0e9e4;border-radius:12px}
+.v10-hotel h4{margin:0 0 10px;font-size:13px}.v10-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.v10-fields .wide{grid-column:1/-1}.v10-fields label{display:block;font-size:11px;color:#687b70;margin-bottom:4px}
+.v10-fields input,.v10-fields select{box-sizing:border-box;width:100%;min-width:0;padding:9px;border:1px solid #d5e1d9;border-radius:8px;background:white;font-size:12px}
+.v10-actions{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}.v10-actions button{border:1px solid #cadcd2;border-radius:8px;padding:8px 11px;background:white;color:#456b61;font-size:11px;cursor:pointer}.v10-actions button.primary{background:#456b61;color:white}
+.v10-status{margin-top:10px;padding:9px;border-radius:8px;background:#edf5f0;color:#426c56;font-size:11px}
+@media(max-width:800px){.v10-hotels{grid-template-columns:1fr}}
+</style>
+<script>
+(function(){
+'use strict';
+// Hotel records are optional. Existing trips are not migrated or overwritten.
+if(!Array.isArray(data.hotels))data.hotels=[];
+const byRegion=region=>data.hotels.find(h=>h.region===region);
+function active(day){return data.hotels.find(h=>h.name?.trim()&&Number.isInteger(h.from)&&Number.isInteger(h.to)&&h.from<=day&&day<=h.to)||null}
+window.TripnoteV10GetHotel=active;
+const panel=document.createElement('section');panel.id='v10HotelPanel';panel.className='v10-panel';
+const anchor=document.querySelector('#itinerary .day-main .route-box');anchor.after(panel);
+const dayOptions=selected=>Array.from({length:6},(_,i)=>'<option value="'+i+'"'+(selected===i?' selected':'')+'>DAY '+(i+1)+'</option>').join('');
+function renderHotel(){
+ const h=active(selectedDay);
+ panel.innerHTML='<h3>🏨 V10 숙소 관리</h3><p>고베·오사카 숙소를 별도로 등록하면 해당 날짜의 동선 출발지·도착지로 자동 선택할 수 있습니다. 숙소가 미정이면 기존 동선 기능을 그대로 사용합니다.</p>'+
+ '<div class="v10-status">DAY '+(selectedDay+1)+' 적용 숙소: '+(h?'<strong>'+esc(h.name)+'</strong> ('+esc(h.region)+')':'미등록 · 기본 출발지 사용')+'</div>'+
+ '<div class="v10-hotels">'+['고베','오사카'].map(region=>{
+ const a=byRegion(region)||{},from=Number.isInteger(a.from)?a.from:(region==='고베'?0:1),to=Number.isInteger(a.to)?a.to:(region==='고베'?0:5);
+ return '<div class="v10-hotel" data-hotel="'+region+'"><h4>🏨 '+region+' 숙소</h4><div class="v10-fields">'+
+ '<div class="wide"><label>호텔 이름</label><input data-field="name" placeholder="호텔 이름 (미정 가능)" value="'+esc(a.name||'')+'"></div>'+
+ '<div class="wide"><label>주소 / Google Maps 검색어</label><input data-field="address" placeholder="일본어 주소 또는 호텔명" value="'+esc(a.address||'')+'"></div>'+
+ '<div><label>체크인 DAY</label><select data-field="from">'+dayOptions(from)+'</select></div>'+
+ '<div><label>체크아웃 DAY</label><select data-field="to">'+dayOptions(to)+'</select></div>'+
+ '<div><label>위도 (선택)</label><input type="number" step="any" data-field="lat" placeholder="34.66" value="'+esc(a.lat??'')+'"></div>'+
+ '<div><label>경도 (선택)</label><input type="number" step="any" data-field="lng" placeholder="135.50" value="'+esc(a.lng??'')+'"></div></div>'+
+ '<div class="v10-actions"><button class="primary" data-hotel-save="'+region+'">숙소 저장</button><button data-hotel-clear="'+region+'">숙소 삭제</button></div></div>';
+ }).join('')+'</div><p>체크인·체크아웃 DAY는 해당 숙소를 동선 기준점으로 적용할 날짜 범위입니다(양끝 포함). 두 숙소 날짜가 겹치지 않도록 설정하세요. 위도·경도가 없으면 Google Maps 검색은 가능하지만 거리 비교에서 숙소 구간은 제외됩니다.</p>';
+ panel.querySelectorAll('[data-hotel-save]').forEach(btn=>btn.onclick=()=>{
+  const region=btn.dataset.hotelSave,card=panel.querySelector('[data-hotel="'+region+'"]');
+  const val=k=>card.querySelector('[data-field="'+k+'"]').value.trim();
+  const name=val('name'),address=val('address'),from=Number(val('from')),to=Number(val('to'));
+  if(!name){alert('숙소 이름을 입력해 주세요. 미정이면 저장하지 않아도 됩니다.');return}
+  if(from>to){alert('체크아웃 DAY는 체크인 DAY보다 빠를 수 없습니다.');return}
+  const lat=val('lat'),lng=val('lng');
+  if((lat==='')!==(lng==='')){alert('위도와 경도는 모두 입력하거나 모두 비워 주세요.');return}
+  if(lat!==''&&(!Number.isFinite(Number(lat))||!Number.isFinite(Number(lng))||Math.abs(Number(lat))>90||Math.abs(Number(lng))>180)){alert('위도·경도 범위를 확인해 주세요.');return}
+  if(data.hotels.some(h=>h.region!==region&&h.name&&from<=h.to&&to>=h.from)){alert('다른 숙소의 적용 DAY와 겹칩니다. 날짜 범위를 조정해 주세요.');return}
+  const record={region,name,address,from,to,lat,lng};const i=data.hotels.findIndex(h=>h.region===region);
+  if(i>=0)data.hotels[i]=record;else data.hotels.push(record);
+  save();notify(region+' 숙소를 저장했습니다.');
+ });
+ panel.querySelectorAll('[data-hotel-clear]').forEach(btn=>btn.onclick=()=>{
+  const region=btn.dataset.hotelClear;
+  if(!byRegion(region))return;
+  if(!confirm(region+' 숙소 정보를 삭제할까요? 기존 여행 장소는 삭제되지 않습니다.'))return;
+  data.hotels=data.hotels.filter(h=>h.region!==region);save();notify(region+' 숙소 정보를 삭제했습니다.');
+ });
+}
+const prior=renderDay;
+renderDay=function(){prior();renderHotel()};
+renderHotel();
+console.info('Tripnote V10 hotel manager ready');
+})();
+</script>
+
 <!-- Tripnote V8: Integrated route planner. Append after V7, before </body> -->
 <style>
 .v8-panel{margin-top:16px;padding:17px;border:1px solid #c9ddd3;background:#f6faf8;border-radius:15px}
@@ -1763,6 +1802,7 @@ const anchors={
  namba:{label:'오사카 난바역',query:'Namba Station Osaka Japan',lat:34.6663,lng:135.5011},
  umeda:{label:'오사카역',query:'Osaka Station Japan',lat:34.7025,lng:135.4959},
  kyoto:{label:'교토역',query:'Kyoto Station Japan',lat:34.9855,lng:135.7586},
+ hotel:{label:'🏨 해당 날짜 숙소',query:'',lat:null,lng:null},
  custom:{label:'직접 입력'}
 };
 const state={day:-1,start:'none',end:'none',startCustom:'',endCustom:'',mode:'walking',suggested:null};
@@ -1782,7 +1822,7 @@ function distance(a,b){
  const h=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dg/2)**2;
  return 6371*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
 }
-function fixedCoords(k){const a=anchors[k];return Number.isFinite(a?.lat)?a:null}
+function fixedCoords(k){const a=anchors[k];return Number.isFinite(a?.lat)&&Number.isFinite(a?.lng)?a:null}
 function total(items){
  const start=fixedCoords(state.start),end=fixedCoords(state.end);
  let prev=start,sum=0;
@@ -1801,11 +1841,17 @@ function recommend(items){
  return ordered;
 }
 function options(value,forEnd){
- return Object.entries(anchors).map(([k,v])=>'<option value="'+k+'"'+(k===value?' selected':'')+'>'+esc(k==='none'?(forEnd?'마지막 방문 장소':'첫 방문 장소'):v.label)+'</option>').join('');
+ return Object.entries(anchors).filter(([k])=>k!=='hotel'||!!window.TripnoteV10GetHotel?.(selectedDay)).map(([k,v])=>'<option value="'+k+'"'+(k===value?' selected':'')+'>'+esc(k==='none'?(forEnd?'마지막 방문 장소':'첫 방문 장소'):v.label)+'</option>').join('');
 }
 function renderV8(){
  const ps=data.days[selectedDay]?.places||[];
- if(state.day!==selectedDay){state.day=selectedDay;state.suggested=null}
+ const hotel=window.TripnoteV10GetHotel?.(selectedDay);
+ if(hotel){anchors.hotel.query=[hotel.name,hotel.address,'Japan'].filter(Boolean).join(' ');anchors.hotel.lat=hotel.lat===''||hotel.lat==null?null:Number(hotel.lat);anchors.hotel.lng=hotel.lng===''||hotel.lng==null?null:Number(hotel.lng);}
+ else {anchors.hotel.query='';anchors.hotel.lat=null;anchors.hotel.lng=null;}
+ if(state.day!==selectedDay){state.day=selectedDay;state.suggested=null;state.start=hotel?'hotel':'none';state.end=hotel?'hotel':'none'}
+ const hotelKey=hotel?hotel.region+'|'+hotel.name+'|'+hotel.address:'';
+ if(state.hotelKey!==hotelKey){if(hotel&&(!state.hotelKey)){if(state.start==='none')state.start='hotel';if(state.end==='none')state.end='hotel'}state.hotelKey=hotelKey;}
+ if(!hotel){if(state.start==='hotel')state.start='none';if(state.end==='hotel')state.end='none'}
  panel.innerHTML='<h3>🗺️ V8 통합 동선 지도</h3><p>출발지와 도착지를 지정하고, 현재 순서와 추천 순서의 직선거리를 비교합니다.</p>'+
  '<div class="v8-grid"><div><label>출발지</label><select id="v8Start">'+options(state.start,false)+'</select><input id="v8StartText" placeholder="출발 장소 이름/주소" style="margin-top:6px;display:'+(state.start==='custom'?'block':'none')+'" value="'+esc(state.startCustom)+'"></div>'+
  '<div><label>최종 도착지</label><select id="v8End">'+options(state.end,true)+'</select><input id="v8EndText" placeholder="도착 장소 이름/주소" style="margin-top:6px;display:'+(state.end==='custom'?'block':'none')+'" value="'+esc(state.endCustom)+'"></div>'+
@@ -1828,7 +1874,7 @@ function compare(){
  state.suggested=rec?rec.map(p=>p.id):null;
  el('v8Result').innerHTML='<strong>현재 순서</strong><ol>'+ps.map(p=>'<li>'+esc(p.name)+'</li>').join('')+'</ol><p>예상 직선거리: '+(now===null?'위치 정보 부족':now.toFixed(2)+'km')+'</p>'+
  (rec?'<strong>추천 순서 (최근접 근사)</strong><ol>'+rec.map(p=>'<li>'+esc(p.name)+'</li>').join('')+'</ol><p>예상 직선거리: '+next.toFixed(2)+'km · 현재 순서와 차이 '+(now-next).toFixed(2)+'km</p>':'<p class="v8-warning">좌표를 확인할 수 없는 장소가 있습니다. 해당 장소의 위도·경도를 입력하면 비교할 수 있습니다.</p>')+
- ((state.start==='custom'||state.end==='custom')?'<p class="v8-warning">직접 입력한 출발·도착지는 거리 비교에서 제외되며 지도 경로에는 포함됩니다.</p>':'')+
+ ((state.start==='custom'||state.end==='custom'||((state.start==='hotel'||state.end==='hotel')&&!fixedCoords('hotel')))?'<p class="v8-warning">직접 입력하거나 좌표가 없는 숙소는 거리 비교에서 제외되며 지도 경로에는 포함됩니다.</p>':'')+
  (ps.some(p=>position(p)?.source==='장소명 기반 추정')?'<p class="v8-warning">일부 장소는 추정 좌표를 사용했으므로 거리는 참고용입니다.</p>':'');
  el('v8Suggested').disabled=!rec;el('v8Apply').disabled=!rec;
 }
@@ -1881,11 +1927,9 @@ console.info('Tripnote V8 route planner loaded');
 (function(){
 'use strict';
 const el=id=>document.getElementById(id);
-const originalPanel=el('v7Panel');
-if(originalPanel)originalPanel.style.display='none';
 const panel=document.createElement('section');panel.id='v9SchedulePanel';panel.className='v9-panel';
 const v8=el('v8Panel')||el('v8RoutePanel');
-if(v8)v8.after(panel);else if(originalPanel)originalPanel.after(panel);else document.querySelector('#itinerary .day-main').append(panel);
+if(v8)v8.after(panel);else document.querySelector('#itinerary .day-main').append(panel);
 const minutes=t=>{if(!/^\d{2}:\d{2}$/.test(t||''))return null;const [h,m]=t.split(':').map(Number);return h<24&&m<60?h*60+m:null};
 const clock=n=>{const m=((n%1440)+1440)%1440;return (n>=1440?'다음 날 ':'')+String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
 const duration=p=>Number.isInteger(p.v7Duration)&&p.v7Duration>=0?p.v7Duration:0;
@@ -1918,7 +1962,7 @@ function renderV9(){
  const changed=prev!==undefined&&prev!==current;
  orderSignatures[selectedDay]=current;
  const warnings=a.issues.filter(x=>!x.info),fixed=ps.filter(p=>p.v7Fixed);
- panel.innerHTML='<h3>🕒 V9 스마트 시간표</h3><p>실제 방문 순서대로 표시하며, 각 장소의 체류 시간과 <strong>다음 장소까지 이동 시간</strong>을 합쳐 충돌을 검사합니다. 이동 시간은 Google Maps에서 확인해 직접 입력합니다.</p>'+
+ panel.innerHTML='<h3>🕒 스마트 시간표</h3><p>실제 방문 순서대로 표시하며, 각 장소의 체류 시간과 <strong>다음 장소까지 이동 시간</strong>을 합쳐 충돌을 검사합니다. 이동 시간은 Google Maps에서 확인해 직접 입력합니다.</p>'+
  '<div class="v9-summary">'+[
  ['방문 장소',ps.length+'곳'],['체류 합계',a.stay+'분'],['이동 합계',a.move+'분'],['시간 설정',a.valid+'/'+ps.length+'곳']
  ].map(([k,v])=>'<div class="v9-stat"><small>'+k+'</small><strong>'+v+'</strong></div>').join('')+'</div>'+
@@ -1937,8 +1981,8 @@ function renderV9(){
  '<div class="v9-alert">'+(warnings.length?'시간 충돌 '+warnings.length+'건이 발견되었습니다.':'현재 설정된 시간에서 확인된 충돌은 없습니다.')+' '+(a.daySpan!==null?'첫 방문부터 마지막 종료까지 약 '+a.daySpan+'분입니다.':'전체 일정 시간은 시작 시각 설정 후 계산됩니다.')+'</div>'+
  '<p>주의: 방문 순서 변경은 시작 시각을 자동으로 이동시키지 않습니다. 이동 시간과 예약/고정 시간을 직접 확인하세요.</p>';
  panel.querySelectorAll('[data-v9-edit]').forEach(b=>b.onclick=()=>{
-  const old=originalPanel?.querySelector('[data-v7-edit="'+CSS.escape(b.dataset.v9Edit)+'"]');
-  if(old)old.click();else alert('시간 수정 창을 열 수 없습니다. 페이지를 새로고침해 주세요.');
+  if(typeof window.TripnoteV10OpenTimeEditor==='function')window.TripnoteV10OpenTimeEditor(b.dataset.v9Edit);
+  else alert('시간 수정 창을 열 수 없습니다. 페이지를 새로고침해 주세요.');
  });
  panel.querySelectorAll('[data-v9-save]').forEach(b=>b.onclick=()=>{
   const p=ps.find(x=>x.id===b.dataset.v9Save);if(!p)return;
@@ -1960,7 +2004,7 @@ function renderV9(){
 const previousRenderDay=renderDay;
 renderDay=function(){previousRenderDay();renderV9()};
 renderV9();
-console.info('Tripnote V9 schedule integration loaded');
+console.info('Tripnote V10 schedule integration loaded');
 })();
 </script>
 </body>
