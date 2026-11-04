@@ -1646,6 +1646,57 @@ render();
 </script>
 <!-- Tripnote V7: Time-based itinerary (append after V6, before 
 
+
+<!-- Tripnote V10.2: transparent walking-time estimates and route label checks -->
+<style>
+.tn102-panel{margin-top:16px;padding:17px;border:1px solid #c9ddd3;border-radius:14px;background:#f7fbf8}
+.tn102-panel h3{margin:0 0 7px;font-size:15px}.tn102-panel p,.tn102-panel small{font-size:11px;line-height:1.65;color:#63766b}
+.tn102-line{background:#fff;border:1px solid #e0eae3;border-radius:9px;padding:10px;margin:8px 0;font-size:12px}
+.tn102-line strong{display:block;margin-bottom:4px}
+.tn102-line button,.tn102-panel>button{margin:7px 6px 0 0;padding:7px 10px;border:1px solid #bfd4c6;background:#fff;border-radius:8px;color:#37604b;cursor:pointer;font-size:11px}
+.tn102-line button:disabled{opacity:.5}
+</style>
+<script>
+(function(){
+'use strict';
+const panel=document.createElement('section');panel.id='tn102Panel';panel.className='tn102-panel';
+const anchor=document.getElementById('v9SchedulePanel')||document.getElementById('v8Panel');
+if(anchor)anchor.after(panel);
+function coords(p){
+ const a=Number(p?.lat),b=Number(p?.lng);
+ if(p?.lat!=null&&p?.lng!=null&&p.lat!==''&&p.lng!==''&&Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a)<=90&&Math.abs(b)<=180)return {lat:a,lng:b};
+ return typeof getCoords==='function'?getCoords(p):null;
+}
+function km(a,b){const r=Math.PI/180,x=(b.lat-a.lat)*r,y=(b.lng-a.lng)*r,h=Math.sin(x/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(y/2)**2;return 6371*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h))}
+const safe=s=>esc(String(s??''));
+function render102(){
+ const ps=data.days[selectedDay]?.places||[],hotel=window.TripnoteV10GetHotel?.(selectedDay);
+ let rows='';
+ ps.forEach((p,i)=>{
+  if(i>=ps.length-1)return;
+  const next=ps[i+1],a=coords(p),b=coords(next);
+  if(!a||!b){rows+='<div class="tn102-line"><strong>'+safe(p.name)+' → '+safe(next.name)+'</strong><small>좌표가 부족하여 추정할 수 없습니다. 두 장소의 좌표를 확인해 주세요.</small></div>';return}
+  const direct=km(a,b),approx=Math.max(1,Math.ceil(direct*1.3/4.5*60));
+  rows+='<div class="tn102-line"><strong>'+safe(p.name)+' → '+safe(next.name)+'</strong><small>직선거리 '+direct.toFixed(2)+'km · 참고 도보시간 약 '+approx+'분 (우회계수 1.3배, 시속 4.5km 가정)</small><div><button data-tn102-apply="'+safe(p.id)+'" data-minutes="'+approx+'">참고시간을 시간표에 입력</button><button data-tn102-check="'+i+'">Google Maps 도보 경로 확인 ↗</button></div></div>';
+ });
+ let hotelText='';
+ if(hotel){const h=coords(hotel),first=coords(ps[0]),last=coords(ps[ps.length-1]);hotelText='<p>🏨 숙소: '+safe(hotel.name)+' · '+(h&&first&&last?'숙소 → 첫 장소 '+km(h,first).toFixed(2)+'km / 마지막 장소 → 숙소 '+km(last,h).toFixed(2)+'km (직선거리)':'숙소 또는 관광지 좌표가 없어 숙소 구간 거리 미계산')+'</p>'}
+ panel.innerHTML='<h3>🚶 V10.2 이동 시간 연결</h3><p><strong>주의:</strong> 아래 시간은 실제 도보 경로 시간이 아닙니다. 직선거리 × 1.3을 시속 4.5km로 환산한 참고 추정치입니다. Google Maps에서 실제 도보 시간을 확인한 뒤 시간표에 입력하는 것을 권장합니다.</p>'+hotelText+(rows||'<p>장소를 두 곳 이상 등록하면 구간별 시간이 표시됩니다.</p>')+'<p>참고시간 입력 버튼은 해당 장소의 <strong>다음 장소까지 이동 시간</strong>만 변경합니다. 시작 시간과 체류 시간은 변경하지 않습니다. Google Maps에서 경유지 이름이 다르게 표시될 경우 핀 위치를 확인해 주세요.</p>';
+ panel.querySelectorAll('[data-tn102-apply]').forEach(btn=>btn.onclick=()=>{
+  const p=ps.find(x=>x.id===btn.dataset.tn102Apply),n=Number(btn.dataset.minutes);if(!p)return;
+  if(p.v7Travel!=null&&!confirm('기존 이동 시간 '+p.v7Travel+'분을 참고 추정치 '+n+'분으로 바꿀까요?'))return;
+  p.v7Travel=n;save();notify('참고 이동 시간 '+n+'분을 시간표에 입력했습니다. 실제 도보 시간을 확인해 주세요.');
+ });
+ panel.querySelectorAll('[data-tn102-check]').forEach(btn=>btn.onclick=()=>{
+  const i=Number(btn.dataset.tn102Check),a=coords(ps[i]),b=coords(ps[i+1]);if(!a||!b)return;
+  const params=new URLSearchParams({api:'1',origin:a.lat+','+a.lng,destination:b.lat+','+b.lng,travelmode:'walking'});
+  window.open('https://www.google.com/maps/dir/?'+params,'_blank','noopener,noreferrer');
+ });
+}
+const prev=renderDay;renderDay=function(){prev();render102()};render102();
+console.info('Tripnote V10.2 estimated walking segment integration ready');
+})();
+</script>
 </body>) -->
 <style>
 .v7-panel{margin-top:16px;padding:17px;border:1px solid #d9e6df;background:#f8fbf9;border-radius:15px}
