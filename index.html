@@ -2766,6 +2766,9 @@ const clean=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':
 const clock=x=>/^([01]\d|2[0-3]):[0-5]\d$/.test(x||'')?x:'시간 미정';
 const url=x=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(x);
 const date=i=>{const d=new Date(2027,2,26+i);return (d.getMonth()+1)+'/'+d.getDate()};
+function tdAirline(f){const names={LJ:'진에어',ZE:'이스타항공'};const raw=String(f.airline||'').trim();const code=raw.toUpperCase()||String(f.code||'').slice(0,2).toUpperCase();return names[code]||raw||code||'항공사 미입력'}
+function tdAirport(code){const names={ICN:'인천',GMP:'김포',UKB:'고베',KIX:'간사이',ITM:'오사카 이타미'};const c=String(code||'').trim().toUpperCase();return c?(names[c]?names[c]+'('+c+')':c):'공항 미입력'}
+function tdFlightNote(note,from){const n=String(note||'').trim();if(!n)return '';if((n==='2터미널'||n==='제2터미널')&&String(from||'').toUpperCase()==='ICN')return '인천공항 제2여객터미널';return n}
 function renderToday(){
  const d=data.days[day];if(!d)return;
  const flights=(Array.isArray(data.flights)?data.flights:[]).filter(f=>Number(f.day)===day);
@@ -2773,7 +2776,7 @@ function renderToday(){
  page.innerHTML='<div class="section-head"><div><h2>☀ 여행 당일 보기</h2><p>이동 중 보기 편한 읽기 전용 일정입니다. 변경은 날짜별 일정에서 할 수 있습니다.</p></div></div>'+
  '<div class="td-tabs">'+data.days.map((x,i)=>'<button data-td-day="'+i+'" class="'+(i===day?'active':'')+'">DAY '+(i+1)+' · '+date(i)+'</button>').join('')+'</div>'+
  '<div class="td-card"><h2>DAY '+(day+1)+' · '+date(day)+' · '+clean(d.area)+'</h2><div class="td-note">'+clean(d.memo||'등록된 하루 메모가 없습니다.')+'</div></div>'+
- (flights.length?'<div class="td-card"><h3>✈ 항공편</h3>'+flights.map(f=>'<div class="td-stop"><div class="td-time">'+clean(clock(f.departure))+'</div><div class="td-detail"><strong>'+clean(f.code||'항공편')+' · '+clean(f.from||'')+' → '+clean(f.to||'')+'</strong><p>출발 '+clean(clock(f.departure))+' · 도착 '+clean(clock(f.arrival))+' · '+clean(f.airline||'')+'</p>'+(f.note?'<p>'+clean(f.note)+'</p>':'')+'</div></div>').join('')+'</div>':'')+
+ (flights.length?'<div class="td-card"><h3>✈ 항공편</h3>'+flights.map(f=>'<div class="td-stop"><div class="td-time">'+clean(clock(f.departure))+'</div><div class="td-detail"><strong>'+clean(f.code||'항공편')+' · '+clean(tdAirport(f.from))+' → '+clean(tdAirport(f.to))+'</strong><p>'+clean(tdAirline(f))+' · 도착 '+clean(clock(f.arrival))+'</p>'+(f.note?'<p>'+clean(tdFlightNote(f.note,f.from))+'</p>':'')+'</div></div>').join('')+'</div>':'')+
  '<div class="td-card"><h3>📍 방문 일정 · '+places.length+'곳</h3>'+(places.length?places.map((p,i)=>'<div class="td-stop"><div class="td-time">'+clean(clock(p.v7Start))+'</div><div class="td-detail"><strong>'+(i+1)+'. '+clean(p.name)+'</strong><p>'+clean(p.area||'')+(p.v7Duration!=null?' · 체류 '+clean(p.v7Duration)+'분':'')+(p.v7Fixed?' · 🔒 고정 일정':'')+'</p>'+(p.address?'<p>'+clean(p.address)+'</p>':'')+(p.memo?'<p>'+clean(p.memo)+'</p>':'')+'<div class="td-actions"><a href="'+url(p.address||p.name+' '+(p.area||'일본'))+'" target="_blank" rel="noopener noreferrer">지도에서 보기 ↗</a></div></div></div>').join(''):'<p class="td-note">아직 등록된 장소가 없습니다.</p>')+'</div>'+
  '<div class="td-card"><div class="td-actions"><button id="tdEdit">이 날짜 일정 편집</button><button id="tdRoute">전체 동선 지도 ↗</button></div><p class="td-note">방문 순서는 기존 일정 순서입니다. 이동·체류 시간과 실제 교통 상황은 별도 확인해 주세요.</p></div>';
  page.querySelectorAll('[data-td-day]').forEach(b=>b.onclick=()=>{day=Number(b.dataset.tdDay);renderToday()});
