@@ -2683,5 +2683,60 @@ function render(){
 const previous=renderDay;renderDay=function(){previous();render()};render();
 })();
 </script>
+<style>
+#expenses .ex-card{background:white;border:1px solid #e1e8e3;border-radius:14px;padding:16px;margin:12px 0}
+#expenses .ex-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#expenses label{display:grid;gap:5px;font-size:12px}
+#expenses input,#expenses select{width:100%;min-width:0;padding:9px;border:1px solid #d9e2dc;border-radius:8px}
+#expenses .ex-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid #edf0ee}
+#expenses button{padding:8px 11px;border-radius:8px;background:#e9f2ed;color:#345847;margin:5px 5px 0 0}
+#expenses small{display:block;color:#7b8492;font-size:11px;margin-top:5px}
+@media(max-width:620px){#expenses .ex-grid{grid-template-columns:1fr}}
+</style>
+<script>
+(function(){
+const nav=document.querySelector('.nav'),main=document.querySelector('main');if(!nav||!main)return;
+const tab=document.createElement('button');tab.dataset.view='expenses';tab.textContent='₩ 여행 경비·정산';nav.append(tab);
+const page=document.createElement('section');page.id='expenses';page.className='view';main.append(page);
+const fmt=n=>Math.round(n).toLocaleString('ko-KR'),krw=n=>'₩'+fmt(n),jpy=n=>'¥'+fmt(n);
+const rate=()=>Number(data.expenseRate)>0?Number(data.expenseRate):950;
+const convert=e=>e.currency==='JPY'?e.amount*rate()/100:e.amount;
+const clean=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let edit=null;
+function store(){localStorage.setItem(KEY,JSON.stringify(data));draw();notify('경비를 저장했습니다.')}
+function draw(){
+ if(!Array.isArray(data.expenses))data.expenses=[];
+ const paid=[0,0],owed=[0,0];let total=0,shared=0;
+ for(const e of data.expenses){const i=e.payer==='여자친구'?1:0,w=convert(e);paid[i]+=w;total+=w;if(e.scope==='personal')owed[i]+=w;else{shared+=w;owed[0]+=w/2;owed[1]+=w/2}}
+ const balance=paid[0]-owed[0],transfer=Math.abs(balance);
+ page.innerHTML='<h2>💰 여행 경비·정산</h2><p class="muted">결제 내역을 기록하고 공동 경비를 50:50으로 정산합니다.</p>'+
+ '<div class="ex-card"><label>100엔당 원화 (직접 설정)<input id="exRate" type="number" min="0.01" step="0.01" value="'+rate()+'"></label><button id="exRateSave">환율 저장</button><small>기본 950원은 예시값이며 실시간 환율이 아닙니다. 원래 결제 금액은 그대로 보존됩니다.</small></div>'+
+ '<div class="ex-grid"><div class="ex-card"><small>여자친구 결제</small><h2>'+krw(paid[1])+'</h2><small>약 '+jpy(paid[1]*100/rate())+'</small></div><div class="ex-card"><small>나 결제</small><h2>'+krw(paid[0])+'</h2><small>약 '+jpy(paid[0]*100/rate())+'</small></div></div>'+
+ '<div class="ex-card"><h3>현재 정산 결과</h3><p class="muted">전체 '+krw(total)+' · 공동 경비 '+krw(shared)+'</p><h2>'+(transfer<0.5?'정산 없음':(balance>0?'여자친구 → 나 ':'나 → 여자친구 ')+krw(transfer))+'</h2><small>약 '+jpy(transfer*100/rate())+' · 개인 지출은 정산에서 제외</small></div>'+
+ '<div class="ex-card"><h3>'+(edit?'지출 수정':'＋ 지출 추가')+'</h3><form id="exForm"><div class="ex-grid"><label>항목명<input name="title" required maxlength="100" placeholder="라멘 식당"></label><label>날짜<select name="day">'+data.days.map((d,i)=>'<option value="'+i+'">DAY '+(i+1)+'</option>').join('')+'</select></label><label>결제자<select name="payer"><option>나</option><option>여자친구</option></select></label><label>금액<input name="amount" type="number" min="0.01" step="0.01" max="999999999" required></label><label>통화<select name="currency"><option value="JPY">엔 JPY</option><option value="KRW">원 KRW</option></select></label><label>구분<select name="scope"><option value="shared">공동 경비 50:50</option><option value="personal">개인 지출</option></select></label></div><button type="submit">'+(edit?'수정 저장':'지출 등록')+'</button>'+(edit?'<button type="button" id="exCancel">취소</button>':'')+'</form></div>'+
+ '<div class="ex-card"><h3>지출 내역 · '+data.expenses.length+'건</h3><div id="exList"></div></div>';
+ const form=page.querySelector('#exForm'),old=data.expenses.find(x=>x.id===edit);
+ form.elements.day.value=String(old?.day??selectedDay);
+ if(old)for(const k of ['title','payer','amount','currency','scope'])form.elements[k].value=old[k];
+ form.onsubmit=ev=>{ev.preventDefault();const f=form.elements,a=Number(f.amount.value),d=Number(f.day.value);if(!f.title.value.trim()||!Number.isFinite(a)||a<=0||a>999999999||!Number.isInteger(d)||d<0||d>5)return alert('입력값을 확인하세요.');
+ const e={title:f.title.value.trim(),day:d,payer:f.payer.value,amount:a,currency:f.currency.value,scope:f.scope.value};
+ if(edit){const idx=data.expenses.findIndex(x=>x.id===edit);if(idx<0)return;Object.assign(data.expenses[idx],e)}else data.expenses.push({id:'ex'+Date.now()+Math.random().toString(36).slice(2),...e});edit=null;store()};
+ if(edit)page.querySelector('#exCancel').onclick=()=>{edit=null;draw()};
+ page.querySelector('#exRateSave').onclick=()=>{const v=Number(page.querySelector('#exRate').value);if(!Number.isFinite(v)||v<=0||v>100000)return alert('환율을 확인하세요.');data.expenseRate=v;store()};
+ const list=page.querySelector('#exList');
+ for(let day=0;day<6;day++){const items=data.expenses.filter(e=>e.day===day);if(!items.length)continue;const heading=document.createElement('h4');heading.textContent='DAY '+(day+1);list.append(heading);
+ for(const e of items){const row=document.createElement('div');row.className='ex-row';const left=document.createElement('div'),right=document.createElement('div');
+ const name=document.createElement('strong');name.textContent=e.title;const meta=document.createElement('small');meta.textContent=e.payer+' 결제 · '+(e.scope==='personal'?'개인':'공동');
+ const b1=document.createElement('button');b1.textContent='수정';b1.onclick=()=>{edit=e.id;draw();page.querySelector('#exForm').scrollIntoView({block:'center'})};
+ const b2=document.createElement('button');b2.textContent='삭제';b2.onclick=()=>{if(!confirm('지출을 삭제할까요?'))return;data.expenses=data.expenses.filter(x=>x.id!==e.id);edit=null;store()};
+ left.append(name,meta,b1,b2);const amount=document.createElement('strong');amount.textContent=e.currency==='JPY'?jpy(e.amount):krw(e.amount);
+ const approx=document.createElement('small');approx.textContent='약 '+(e.currency==='JPY'?krw(convert(e)):jpy(e.amount*100/rate()));right.append(amount,approx);row.append(left,right);list.append(row)}
+ }
+ if(!data.expenses.length)list.textContent='등록된 지출이 없습니다.';
+}
+const oldShow=showView;showView=function(v){oldShow(v);if(v==='expenses'){$('pageTitle').textContent='여행 경비·정산';draw()}};
+tab.onclick=()=>showView('expenses');draw();
+})();
+</script>
 </body>
 </html>
