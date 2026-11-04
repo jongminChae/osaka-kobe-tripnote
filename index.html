@@ -2683,5 +2683,88 @@ function render(){
 const previous=renderDay;renderDay=function(){previous();render()};render();
 })();
 </script>
+<!-- Tripnote V12.8: opening hours and reservation time validation -->
+<style>
+.tn128{margin:14px 0;padding:14px;border:1px solid #d2ded5;background:#f8fbf9;border-radius:12px}
+.tn128 h4{margin:0 0 8px}.tn128 p,.tn128 small{font-size:12px;line-height:1.6}
+.tn128-entry{border-top:1px solid #e1e9e2;padding:12px 0}.tn128-entry strong{display:block;margin-bottom:8px}
+.tn128-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tn128-fields label{font-size:11px;display:grid;gap:5px}
+.tn128-fields input{min-width:0;width:100%;border:1px solid #d5dfd7;border-radius:8px;padding:8px;background:#fff}
+.tn128 button{margin-top:8px;padding:8px 12px;border-radius:8px;border:1px solid #b3cab9;background:#e9f2eb;color:#315740;cursor:pointer}
+.tn128-issue{color:#9c4c1d}.tn128-good{color:#346b4b}
+@media(max-width:640px){.tn128-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+<script>
+(function(){
+'use strict';
+const anchor=document.getElementById('tn127');if(!anchor)return;
+const host=document.createElement('section');host.id='tn128';host.className='tn128';anchor.after(host);
+const min=t=>{if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(t||''))return null;return Number(t.slice(0,2))*60+Number(t.slice(3))};
+const clock=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+function evaluate(p){
+ const issues=[],checks=[];
+ const open=min(p.tn128Open),close=min(p.tn128Close),book=min(p.tn128Reserve),start=min(p.v7Start);
+ const duration=Number.isInteger(p.v7Duration)&&p.v7Duration>=0?p.v7Duration:null;
+ if((p.tn128Open&&!p.tn128Close)||(!p.tn128Open&&p.tn128Close))issues.push('영업 시작·종료 시각을 모두 입력해 주세요.');
+ if(open!==null&&close!==null){
+  if(close<=open)issues.push('당일 영업 종료는 시작보다 늦어야 합니다. 자정 이후 영업은 아직 지원하지 않습니다.');
+  else if(start===null)checks.push('방문 시작 시간이 없어 영업시간 충돌을 확인할 수 없습니다.');
+  else {
+   if(start<open)issues.push('방문 시작 '+clock(start)+'이 영업 시작 '+clock(open)+'보다 빠릅니다.');
+   if(start>=close)issues.push('방문 시작 '+clock(start)+'이 영업 종료 '+clock(close)+' 이후입니다.');
+   if(duration===null)checks.push('체류 시간이 없어 영업 종료 전 방문 완료 여부를 확인할 수 없습니다.');
+   else if(start+duration>close)issues.push('방문 종료 예상 '+(start+duration>=1440?'다음 날':clock(start+duration))+'이 영업 종료 '+clock(close)+'를 넘습니다.');
+  }
+ }
+ if(book!==null){
+  if(start===null)checks.push('예약 시각 '+clock(book)+'이 등록되어 있으나 방문 시작 시각이 없습니다.');
+  else if(start!==book)issues.push('예약 '+clock(book)+'과 방문 시작 '+clock(start)+'이 일치하지 않습니다.');
+  if(open!==null&&close!==null&&close>open&&(book<open||book>=close))issues.push('예약 시각이 입력된 영업시간 밖입니다.');
+ }
+ if(!p.tn128Open&&!p.tn128Close&&!p.tn128Reserve)checks.push('영업시간·예약 시각 미입력: 검증할 정보가 없습니다.');
+ return {issues,checks};
+}
+function render(){
+ host.replaceChildren();
+ const h=document.createElement('h4');h.textContent='🕘 V12.8 영업시간·예약시간 검증';
+ const intro=document.createElement('p');intro.textContent='장소별 영업 시작/종료와 예약 시각을 직접 입력해 시간표와 비교합니다. 외부 영업정보 자동 조회는 아니며, 실제 방문 날짜의 휴무·라스트오더는 별도 확인이 필요합니다.';
+ host.append(h,intro);
+ const places=data.days[selectedDay]?.places||[];
+ if(!places.length){const p=document.createElement('p');p.textContent='방문 장소를 등록하면 영업시간을 설정할 수 있습니다.';host.append(p);return}
+ let errors=0,unchecked=0;
+ for(const p of places){const result=evaluate(p);errors+=result.issues.length;unchecked+=result.checks.length}
+ const summary=document.createElement('p');summary.className=errors?'tn128-issue':'tn128-good';
+ summary.textContent=errors?'⚠ 영업시간·예약시간 관련 문제 '+errors+'건':'✓ 입력된 정보에서 발견된 시간 충돌 없음';
+ host.append(summary);
+ if(unchecked){const note=document.createElement('p');note.textContent='검증 미완료 안내 '+unchecked+'건 · 정보가 없거나 일정 시작·체류 시간이 빠진 장소는 정상 영업을 보장하지 않습니다.';host.append(note)}
+ places.forEach(p=>{
+  const wrap=document.createElement('div');wrap.className='tn128-entry';
+  const name=document.createElement('strong');name.textContent=p.name;
+  const fields=document.createElement('div');fields.className='tn128-fields';
+  const labels=[['tn128Open','영업 시작'],['tn128Close','영업 종료'],['tn128Reserve','예약 시각']];
+  const inputs=labels.map(([key,label])=>{
+   const lab=document.createElement('label');lab.textContent=label;
+   const input=document.createElement('input');input.type='time';input.value=p[key]||'';
+   lab.append(input);fields.append(lab);return input;
+  });
+  const button=document.createElement('button');button.type='button';button.textContent='시간 정보 저장';
+  button.onclick=()=>{
+   const values=inputs.map(x=>x.value);
+   if((values[0]&&!values[1])||(!values[0]&&values[1])){alert('영업 시작·종료 시간을 함께 입력하거나 둘 다 비워 주세요.');return}
+   if(values[0]&&min(values[1])<=min(values[0])){alert('현재는 당일 영업시간만 지원합니다. 종료 시각은 시작보다 늦어야 합니다.');return}
+   [p.tn128Open,p.tn128Close,p.tn128Reserve]=values;
+   save();notify(p.name+'의 영업시간·예약 시각을 저장했습니다.');
+  };
+  const result=evaluate(p),message=document.createElement('p');
+  message.className=result.issues.length?'tn128-issue':'tn128-good';
+  message.textContent=result.issues.length?'⚠ '+result.issues.join(' / '):'✓ 입력된 시간 충돌 없음';
+  const info=document.createElement('small');info.textContent=result.checks.join(' / ');
+  wrap.append(name,fields,button,message,info);host.append(wrap);
+ });
+}
+const previous=renderDay;renderDay=function(){previous();render()};render();
+})();
+</script>
 </body>
 </html>
