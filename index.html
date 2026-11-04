@@ -2030,6 +2030,15 @@ async function searchGeo(name,address,area){
  if(busy)throw Error('다른 위치 검색이 진행 중입니다. 잠시 후 다시 시도해 주세요.');
  busy=true;
  try{
+  // Known Kobe landmarks: approximate reference coordinates, not live geocoding.
+  const normalized=String(name||'').replace(/\s+/g,'').toLowerCase();
+  const known=[
+   {re:/이쿠타|生田神社|ikutajinja|ikutashrine/,label:'이쿠타 신사 (내장 참고 좌표)',lat:'34.6949',lon:'135.1909'},
+   {re:/난킨|南京町|nankinmachi/,label:'난킨마치 (내장 참고 좌표)',lat:'34.6884',lon:'135.1884'},
+   {re:/포트타|ポートタワー|porttower/,label:'고베 포트타워 (내장 참고 좌표)',lat:'34.6826',lon:'135.1867'}
+  ];
+  const knownHit=known.find(x=>x.re.test(normalized));
+  if(knownHit)return [{lat:knownHit.lat,lon:knownHit.lon,display_name:knownHit.label,source:'built-in'}];
   const candidates=[address&&address.trim(),name&&name.trim(),name&&area?[name,area].join(', '):'',name&&/이쿠타|生田/.test(name)?'Ikuta Jinja Kobe':'',name&&/난킨|南京/.test(name)?'Nankinmachi Kobe':'',name&&/포트타|ポートタワー/.test(name)?'Kobe Port Tower':''].filter(Boolean);
   for(const q of [...new Set(candidates)]){
    if(cache.has(q)){const v=cache.get(q);if(v.length)return v;continue}
@@ -2060,8 +2069,8 @@ function addWidget(host,getFields,apply){
   try{
    let items=await searchGeo(name,address,area);
    
-   if(!items.length){results.textContent='검색 결과가 없습니다. 주소를 더 정확히 입력하거나 좌표를 직접 입력해 주세요.';return}
-   results.innerHTML='<div class="tn101-note">검색된 후보 중 올바른 위치를 선택해 주세요. 결과 출처: © OpenStreetMap contributors</div>';
+   if(!items.length){results.textContent='외부 위치 검색 결과가 없습니다. 한국어 장소명이 지원되지 않을 수 있습니다. 주소나 일본어·영어 명칭을 입력해 다시 검색하거나 좌표를 직접 입력해 주세요.';return}
+   results.innerHTML='<div class="tn101-note">후보 위치를 확인해 주세요. 내장 참고 좌표는 실제 입구 위치와 다를 수 있습니다. 외부 검색 결과: © OpenStreetMap contributors</div>';
    items.forEach(item=>{
     const b=document.createElement('button');b.type='button';
     b.textContent=item.display_name+' ('+Number(item.lat).toFixed(5)+', '+Number(item.lon).toFixed(5)+')';
