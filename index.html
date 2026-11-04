@@ -2217,5 +2217,67 @@ const prior=renderDay;renderDay=function(){prior();render11()};render11();
 console.info('Tripnote V11 restaurant discovery ready');
 })();
 </script>
+
+<!-- Tripnote V11.1: portable JSON backup and guarded restore -->
+<style>
+.tn111-panel{margin:16px 0;padding:16px;border:1px solid #c8dacf;border-radius:14px;background:#f8fbf9}
+.tn111-panel h3{margin:0 0 8px}.tn111-panel p,.tn111-panel small{font-size:11px;color:#5b7165;line-height:1.7}
+.tn111-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.tn111-actions button{padding:10px 13px;background:white;border:1px solid #b6d0c1;color:#315a46;border-radius:9px;cursor:pointer;font-size:12px}
+.tn111-actions button:focus-visible{outline:3px solid #83ac96;outline-offset:2px}
+.tn111-status{font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+</style>
+<script>
+(function(){
+'use strict';
+const panel=document.createElement('section');panel.id='tn111Panel';panel.className='tn111-panel';
+const anchor=document.getElementById('tn11Panel')||document.getElementById('tn102Panel');
+if(anchor)anchor.after(panel);
+else document.querySelector('#itinerary')?.append(panel);
+panel.innerHTML='<h3>💾 V11.1 여행 데이터 백업 · 복원</h3><p>전체 DAY 일정, 식당, 숙소, 체크리스트와 메모를 JSON 파일로 저장하고 다른 기기로 옮길 수 있습니다. 브라우저 저장 정보는 기기 간 자동 동기화되지 않습니다.</p><div class="tn111-actions"><button type="button" id="tn111Export">JSON 백업 다운로드</button><button type="button" id="tn111Import">JSON 파일에서 복원</button><input type="file" id="tn111File" accept=".json,application/json" hidden aria-label="Tripnote JSON 백업 파일"></div><div class="tn111-status" id="tn111Status" role="status" aria-live="polite"></div><small>복원 시 기존 브라우저 데이터를 덮어씁니다. 확인 후 복원하며, 복원 직전 데이터도 별도 JSON 파일로 다운로드합니다. 파일은 서버로 전송하지 않습니다.</small>';
+const status=document.getElementById('tn111Status');
+const filename=prefix=>prefix+'-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+function download(payload,name){
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function validate(v){
+ if(!v||typeof v!=='object'||Array.isArray(v))throw Error('JSON 객체가 아닙니다.');
+ if(!Array.isArray(v.days)||v.days.length!==6)throw Error('DAY 일정은 6개여야 합니다.');
+ if(!Array.isArray(v.checklist)||typeof v.memo!=='string')throw Error('체크리스트 또는 전체 메모 형식이 올바르지 않습니다.');
+ if(v.days.some(d=>!d||typeof d!=='object'||!Array.isArray(d.places)||typeof d.area!=='string'||typeof d.memo!=='string'||(d.arrival!=null&&typeof d.arrival!=='string')))throw Error('DAY 일정 구조가 올바르지 않습니다.');
+ const places=v.days.flatMap(d=>d.places);
+ if(places.length>10000||v.checklist.length>10000)throw Error('데이터 개수가 비정상적으로 많습니다.');
+ if(places.some(p=>!p||typeof p!=='object'||typeof p.id!=='string'||!p.id||typeof p.name!=='string'||typeof p.type!=='string'||typeof p.status!=='string'))throw Error('장소 데이터 형식이 올바르지 않습니다.');
+ if(v.checklist.some(c=>!c||typeof c.text!=='string'||typeof c.done!=='boolean'))throw Error('체크리스트 형식이 올바르지 않습니다.');
+ if(v.hotels!=null&&(!Array.isArray(v.hotels)||v.hotels.some(h=>!h||typeof h.name!=='string'||typeof h.region!=='string')))throw Error('숙소 데이터 형식이 올바르지 않습니다.');
+ return places.length;
+}
+document.getElementById('tn111Export').onclick=()=>{
+ try{download({format:'tripnote-osaka-kobe',version:'11.1',exportedAt:new Date().toISOString(),data:JSON.parse(JSON.stringify(data))},filename('tripnote-backup'));status.textContent='백업 다운로드를 요청했습니다. 다운로드 폴더에서 파일을 확인해 주세요.'}
+ catch(e){status.textContent='백업 생성 실패: '+e.message}
+};
+const input=document.getElementById('tn111File');
+document.getElementById('tn111Import').onclick=()=>input.click();
+input.onchange=async()=>{
+ const file=input.files?.[0];input.value='';if(!file)return;
+ if(file.size>10*1024*1024){status.textContent='10MB 이하의 JSON 파일만 복원할 수 있습니다.';return}
+ try{
+  const parsed=JSON.parse(await file.text());
+  const restored=parsed?.format==='tripnote-osaka-kobe'&&parsed?.data?parsed.data:parsed;
+  const count=validate(restored),current=data.days.reduce((n,d)=>n+(d.places?.length||0),0);
+  const yes=confirm('백업 파일: '+file.name+'\n복원할 장소: '+count+'곳\n현재 장소: '+current+'곳\n\n현재 브라우저의 전체 일정·숙소·메모를 덮어씁니다. 계속할까요?');
+  if(!yes){status.textContent='복원을 취소했습니다. 현재 데이터는 유지됩니다.';return}
+  // The pre-restore snapshot is downloaded before any localStorage mutation.
+  download({format:'tripnote-osaka-kobe',version:'11.1',exportedAt:new Date().toISOString(),data:JSON.parse(JSON.stringify(data))},filename('tripnote-before-restore'));
+  const json=JSON.stringify(restored);
+  localStorage.setItem(KEY,json);
+  status.textContent='복원이 저장되었습니다. 화면을 새로고침합니다.';
+  location.reload();
+ }catch(e){status.textContent='복원 실패: '+e.message+' 기존 데이터는 변경되지 않았습니다.'}
+};
+console.info('Tripnote V11.1 backup and restore ready');
+})();
+</script>
 </body>
 </html>
