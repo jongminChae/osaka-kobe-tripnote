@@ -2880,5 +2880,104 @@ nav.addEventListener('click',event=>{
 });
 })();
 </script>
+
+<!-- Tripnote V16: offline availability and safer JSON transfer -->
+<style>
+.tn16-status{font-size:12px;color:#456b61;margin:7px 0 0;line-height:1.5}
+.tn16-status.warn{color:#a45c24}
+</style>
+<script>
+(function(){
+'use strict';
+const KEY16='tripnote_osaka_kobe_v2';
+const STATUS=document.createElement('div');
+STATUS.className='tn16-status';
+STATUS.setAttribute('role','status');
+STATUS.setAttribute('aria-live','polite');
+const actions=document.querySelector('.top-actions');
+if(actions)actions.after(STATUS);
+function status(t,warn){STATUS.textContent=t;STATUS.classList.toggle('warn',!!warn)}
+if('serviceWorker' in navigator && location.protocol==='https:'){
+ navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(reg=>{
+  status('오프라인 준비 중 · 최초 접속 시 인터넷 연결이 필요합니다.');
+  navigator.serviceWorker.ready.then(()=>status('오프라인 실행 준비 완료 · 외부 지도·검색은 인터넷이 필요합니다.')).catch(()=>{});
+  reg.addEventListener('updatefound',()=>status('새 버전을 저장하는 중입니다.'));
+ }).catch(()=>status('오프라인 저장에 실패했습니다. 온라인에서 다시 접속해 주세요.',true));
+}else status('이 브라우저에서는 오프라인 실행을 지원하지 않을 수 있습니다.',true);
+window.addEventListener('offline',()=>status('오프라인 상태 · 저장된 일정과 경비는 계속 이용할 수 있습니다.'));
+window.addEventListener('online',()=>status('온라인 상태 · 저장된 일정과 경비는 이 기기에 보관됩니다.'));
+function fileName(prefix){const d=new Date();const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,19).replace(/[:T]/g,'-');return prefix+'-'+local+'.json'}
+function download(value,name){
+ const blob=new Blob([JSON.stringify(value,null,2)],{type:'application/json;charset=utf-8'});
+ const u=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=u;a.download=name;document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(u),60000);
+}
+function validate(v){
+ if(!v||typeof v!=='object'||Array.isArray(v)||!Array.isArray(v.days)||v.days.length!==6)throw Error('DAY 1~6 일정이 없는 파일입니다.');
+ if(!Array.isArray(v.checklist)||typeof v.memo!=='string')throw Error('체크리스트 또는 전체 메모가 올바르지 않습니다.');
+ let count=0;
+ for(const d of v.days){
+  if(!d||typeof d!=='object'||typeof d.area!=='string'||typeof d.memo!=='string'||!Array.isArray(d.places))throw Error('DAY 일정 형식이 올바르지 않습니다.');
+  count+=d.places.length;
+  for(const p of d.places)if(!p||typeof p!=='object'||typeof p.name!=='string'||typeof p.id!=='string')throw Error('장소 정보가 올바르지 않습니다.');
+ }
+ if(count>10000||v.checklist.length>10000)throw Error('데이터 개수가 너무 많습니다.');
+ for(const c of v.checklist)if(!c||typeof c.text!=='string'||typeof c.done!=='boolean')throw Error('체크리스트가 올바르지 않습니다.');
+ for(const key of ['hotels','flights','expenses'])if(v[key]!=null&&!Array.isArray(v[key]))throw Error(key+' 형식이 올바르지 않습니다.');
+ if(v.flights?.some(f=>!f||typeof f!=='object'||typeof f.code!=='string'))throw Error('항공편 형식이 올바르지 않습니다.');
+ if(v.expenses?.some(e=>!e||typeof e!=='object'||typeof e.title!=='string'||!Number.isFinite(Number(e.amount))))throw Error('경비 형식이 올바르지 않습니다.');
+ return count;
+}
+function snapshot(){return JSON.parse(localStorage.getItem(KEY16)||'null')||data}
+function exportBackup(){
+ try{download(snapshot(),fileName('tripnote-backup'));status('백업 다운로드를 요청했습니다. 파일 앱 또는 다운로드 폴더에서 확인해 주세요.')}
+ catch(e){status('백업 실패: '+e.message,true)}
+}
+async function restore(file){
+ if(!file)return;
+ if(file.size>10*1024*1024){status('10MB 이하의 JSON 파일만 가져올 수 있습니다.',true);return}
+ try{
+  const parsed=JSON.parse(await file.text());
+  const v=parsed?.format==='tripnote-osaka-kobe'&&parsed?.data?parsed.data:parsed;
+  const count=validate(v),current=snapshot();
+  const currentCount=current.days?.reduce((sum,d)=>sum+(d.places?.length||0),0)||0;
+  if(!confirm('가져올 파일: '+file.name+'\n장소 '+count+'곳 · 항공편 '+(v.flights?.length||0)+'건 · 경비 '+(v.expenses?.length||0)+'건\n현재 장소 '+currentCount+'곳\n\n현재 기기의 모든 Tripnote 데이터를 교체합니다. 계속하시겠습니까?')){status('가져오기를 취소했습니다.');return}
+  // Keep a recoverable pre-restore copy in localStorage, independent of download permission.
+  const previous=localStorage.getItem(KEY16);
+  if(previous)localStorage.setItem(KEY16+'_v16_before_restore',previous);
+  // Request a file download as an additional backup; mobile browsers may block it.
+  if(previous){try{download(JSON.parse(previous),fileName('tripnote-before-restore'))}catch(e){}}
+  localStorage.setItem(KEY16,JSON.stringify(v));
+  status('가져오기 완료 · 화면을 새로고침합니다.');
+  location.reload();
+ }catch(e){status('가져오기 실패: '+e.message+' · 기존 데이터는 유지됩니다.',true)}
+}
+const exportBtn=document.getElementById('exportBtn');
+const importBtn=document.getElementById('importBtn');
+const fileInput=document.getElementById('fileInput');
+if(exportBtn)exportBtn.onclick=exportBackup;
+if(importBtn&&fileInput){
+ importBtn.onclick=()=>fileInput.click();
+ fileInput.onchange=async()=>{const f=fileInput.files?.[0];fileInput.value='';await restore(f)};
+}
+const legacyExport=document.getElementById('tn111Export');
+const legacyImport=document.getElementById('tn111Import');
+const legacyFile=document.getElementById('tn111File');
+const legacyStatus=document.getElementById('tn111Status');
+if(legacyExport)legacyExport.onclick=exportBackup;
+if(legacyImport&&legacyFile){
+ legacyImport.onclick=()=>legacyFile.click();
+ legacyFile.onchange=async()=>{const f=legacyFile.files?.[0];legacyFile.value='';await restore(f)};
+}
+if(legacyStatus)legacyStatus.textContent='V16: 파일 형식 검증, 복원 전 확인, 복원 직전 브라우저 내 보관을 지원합니다.';
+const recovery=localStorage.getItem(KEY16+'_v16_before_restore');
+if(recovery&&legacyStatus){
+ const b=document.createElement('button');b.type='button';b.textContent='이전 복원 직전 데이터 다운로드';b.className='btn';b.style.marginTop='8px';
+ b.onclick=()=>{try{download(JSON.parse(recovery),fileName('tripnote-recovery'));status('복구용 파일 다운로드를 요청했습니다.')}catch(e){status('복구 파일을 읽을 수 없습니다.',true)}};
+ legacyStatus.after(b);
+}
+})();
+</script>
 </body>
 </html>
