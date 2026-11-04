@@ -1645,87 +1645,7 @@ render();
 })();
 </script>
 <!-- Tripnote V7: Time-based itinerary (append after V6, before 
-<!-- Tripnote V10.1: user-initiated geocoding for places and hotels -->
-<style>
-.tn101-geo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
-.tn101-geo button{border:1px solid #bfd5ca;border-radius:8px;background:#eff7f2;color:#365e4c;padding:8px 11px;cursor:pointer;font-size:12px}
-.tn101-geo button:disabled{opacity:.6;cursor:wait}
-.tn101-note{font-size:11px;color:#667b70;line-height:1.6}
-.tn101-results{margin:8px 0;padding:10px;border:1px solid #d6e5dc;border-radius:9px;background:#fafdfb}
-.tn101-results button{display:block;text-align:left;width:100%;margin:6px 0;white-space:normal}
-</style>
-<script>
-(function(){
-'use strict';
-const API='https://nominatim.openstreetmap.org/search';
-const cache=new Map();
-let lastRequest=0, busy=false;
-const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-const escGeo=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-async function searchGeo(name,address,area){
- const q=[name,address,area,'Japan'].filter(Boolean).join(', ');
- if(cache.has(q))return cache.get(q);
- if(busy)throw Error('다른 위치 검색이 진행 중입니다. 잠시 후 다시 시도해 주세요.');
- busy=true;
- try{
-  const delay=Math.max(0,1200-(Date.now()-lastRequest));if(delay)await wait(delay);
-  lastRequest=Date.now();
-  const url=API+'?'+new URLSearchParams({q,format:'jsonv2',limit:'5',addressdetails:'1'});
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),12000);
-  let response;
-  try{response=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal});}
-  finally{clearTimeout(timeout)}
-  if(!response.ok)throw Error('위치 검색 서비스 응답 오류 ('+response.status+')');
-  const results=(await response.json()).filter(x=>Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon)));
-  cache.set(q,results);return results;
- }finally{busy=false}
-}
-function addWidget(host,getFields,apply){
- if(!host||host.querySelector('.tn101-geo'))return;
- const wrap=document.createElement('div');wrap.className='tn101-geo';
- wrap.innerHTML='<button type="button" class="tn101-search">📍 좌표 검색</button><span class="tn101-note">OpenStreetMap / Nominatim · 검색 결과를 확인 후 적용</span><div class="tn101-results" style="display:none;width:100%" aria-live="polite"></div>';
- host.appendChild(wrap);
- const btn=wrap.querySelector('button'),results=wrap.querySelector('.tn101-results');
- btn.onclick=async()=>{
-  const {name,address,area}=getFields();
-  if(!name&&!address){alert('장소 이름 또는 주소를 먼저 입력해 주세요.');return}
-  btn.disabled=true;results.style.display='block';results.textContent='위치를 검색하는 중입니다…';
-  try{
-   let items=await searchGeo(name,address,area);
-   if(!items.length&&address&&name)items=await searchGeo(name,'',area);
-   if(!items.length){results.textContent='검색 결과가 없습니다. 주소를 더 정확히 입력하거나 좌표를 직접 입력해 주세요.';return}
-   results.innerHTML='<div class="tn101-note">검색된 후보 중 올바른 위치를 선택해 주세요. 결과 출처: © OpenStreetMap contributors</div>';
-   items.forEach(item=>{
-    const b=document.createElement('button');b.type='button';
-    b.textContent=item.display_name+' ('+Number(item.lat).toFixed(5)+', '+Number(item.lon).toFixed(5)+')';
-    b.onclick=()=>{apply(item.lat,item.lon);results.textContent='좌표를 입력했습니다. 저장 버튼을 눌러 확정해 주세요.';};
-    results.appendChild(b);
-   });
-  }catch(e){results.textContent='위치 검색 실패: '+e.message+' · 좌표를 직접 입력할 수도 있습니다.'}
-  finally{btn.disabled=false}
- };
-}
-function setupPlace(){
- const modal=document.getElementById('modalBack');if(!modal)return;
- const lat=document.getElementById('fLat'),lng=document.getElementById('fLng');
- if(!lat||!lng)return;
- const host=lat.closest('.field')||lat.parentElement;
- addWidget(host,()=>({name:document.getElementById('fName')?.value.trim(),address:document.getElementById('fAddress')?.value.trim(),area:document.getElementById('fArea')?.value.trim()}),(a,b)=>{lat.value=a;lng.value=b;lat.dispatchEvent(new Event('input',{bubbles:true}));});
-}
-function setupHotels(){
- document.querySelectorAll('#v10HotelPanel [data-hotel]').forEach(card=>{
-  const lat=card.querySelector('[data-field="lat"]'),lng=card.querySelector('[data-field="lng"]');
-  if(!lat||!lng)return;
-  addWidget(lat.parentElement,()=>({name:card.querySelector('[data-field="name"]').value.trim(),address:card.querySelector('[data-field="address"]').value.trim(),area:card.dataset.hotel}),(a,b)=>{lat.value=a;lng.value=b;});
- });
-}
-setupPlace();setupHotels();
-const hotelPanel=document.getElementById('v10HotelPanel');
-if(hotelPanel){const observer=new MutationObserver(()=>setupHotels());observer.observe(hotelPanel,{childList:true});}
-console.info('Tripnote V10.1 coordinate lookup ready');
-})();
-</script>
+
 </body>) -->
 <style>
 .v7-panel{margin-top:16px;padding:17px;border:1px solid #d9e6df;background:#f8fbf9;border-radius:15px}
@@ -2087,6 +2007,89 @@ const previousRenderDay=renderDay;
 renderDay=function(){previousRenderDay();renderV9()};
 renderV9();
 console.info('Tripnote V10 schedule integration loaded');
+})();
+</script>
+<!-- Tripnote V10.1: user-initiated geocoding for places and hotels -->
+<style>
+.tn101-geo{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.tn101-geo button{border:1px solid #bfd5ca;border-radius:8px;background:#eff7f2;color:#365e4c;padding:8px 11px;cursor:pointer;font-size:12px}
+.tn101-geo button:disabled{opacity:.6;cursor:wait}
+.tn101-note{font-size:11px;color:#667b70;line-height:1.6}
+.tn101-results{margin:8px 0;padding:10px;border:1px solid #d6e5dc;border-radius:9px;background:#fafdfb}
+.tn101-results button{display:block;text-align:left;width:100%;margin:6px 0;white-space:normal}
+</style>
+<script>
+(function(){
+'use strict';
+const API='https://nominatim.openstreetmap.org/search';
+const cache=new Map();
+let lastRequest=0, busy=false;
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const escGeo=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function searchGeo(name,address,area){
+ if(busy)throw Error('다른 위치 검색이 진행 중입니다. 잠시 후 다시 시도해 주세요.');
+ busy=true;
+ try{
+  const candidates=[address&&address.trim(),name&&name.trim(),name&&area?[name,area].join(', '):'',name&&/이쿠타|生田/.test(name)?'Ikuta Jinja Kobe':'',name&&/난킨|南京/.test(name)?'Nankinmachi Kobe':'',name&&/포트타|ポートタワー/.test(name)?'Kobe Port Tower':''].filter(Boolean);
+  for(const q of [...new Set(candidates)]){
+   if(cache.has(q)){const v=cache.get(q);if(v.length)return v;continue}
+   const delay=Math.max(0,1200-(Date.now()-lastRequest));if(delay)await wait(delay);
+   lastRequest=Date.now();
+   const url=API+'?'+new URLSearchParams({q,format:'jsonv2',limit:'5',countrycodes:'jp',addressdetails:'1', 'accept-language':'ko,en,ja'});
+   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),12000);
+   let response;
+   try{response=await fetch(url,{headers:{Accept:'application/json'},signal:controller.signal})}
+   finally{clearTimeout(timeout)}
+   if(!response.ok)throw Error('위치 검색 서비스 응답 오류 ('+response.status+')');
+   const results=(await response.json()).filter(x=>Number.isFinite(Number(x.lat))&&Number.isFinite(Number(x.lon)));
+   cache.set(q,results);if(results.length)return results;
+  }
+  return [];
+ }finally{busy=false}
+}
+function addWidget(host,getFields,apply){
+ if(!host||host.querySelector('.tn101-geo'))return;
+ const wrap=document.createElement('div');wrap.className='tn101-geo';
+ wrap.innerHTML='<button type="button" class="tn101-search">📍 좌표 검색</button><span class="tn101-note">OpenStreetMap / Nominatim · 검색 결과를 확인 후 적용</span><div class="tn101-results" style="display:none;width:100%" aria-live="polite"></div>';
+ host.appendChild(wrap);
+ const btn=wrap.querySelector('button'),results=wrap.querySelector('.tn101-results');
+ btn.onclick=async()=>{
+  const {name,address,area}=getFields();
+  if(!name&&!address){alert('장소 이름 또는 주소를 먼저 입력해 주세요.');return}
+  btn.disabled=true;results.style.display='block';results.textContent='위치를 검색하는 중입니다…';
+  try{
+   let items=await searchGeo(name,address,area);
+   
+   if(!items.length){results.textContent='검색 결과가 없습니다. 주소를 더 정확히 입력하거나 좌표를 직접 입력해 주세요.';return}
+   results.innerHTML='<div class="tn101-note">검색된 후보 중 올바른 위치를 선택해 주세요. 결과 출처: © OpenStreetMap contributors</div>';
+   items.forEach(item=>{
+    const b=document.createElement('button');b.type='button';
+    b.textContent=item.display_name+' ('+Number(item.lat).toFixed(5)+', '+Number(item.lon).toFixed(5)+')';
+    b.onclick=()=>{apply(item.lat,item.lon);results.textContent='좌표를 입력했습니다. 저장 버튼을 눌러 확정해 주세요.';};
+    results.appendChild(b);
+   });
+  }catch(e){results.textContent='위치 검색 실패: '+e.message+' · 좌표를 직접 입력할 수도 있습니다.'}
+  finally{btn.disabled=false}
+ };
+}
+function setupPlace(){
+ const modal=document.getElementById('modalBack');if(!modal)return;
+ const lat=document.getElementById('fLat'),lng=document.getElementById('fLng');
+ if(!lat||!lng)return;
+ const host=lat.closest('.field')||lat.parentElement;
+ addWidget(host,()=>({name:document.getElementById('fName')?.value.trim(),address:document.getElementById('fAddress')?.value.trim(),area:document.getElementById('fArea')?.value.trim()}),(a,b)=>{lat.value=a;lng.value=b;lat.dispatchEvent(new Event('input',{bubbles:true}));});
+}
+function setupHotels(){
+ document.querySelectorAll('#v10HotelPanel [data-hotel]').forEach(card=>{
+  const lat=card.querySelector('[data-field="lat"]'),lng=card.querySelector('[data-field="lng"]');
+  if(!lat||!lng)return;
+  addWidget(lat.parentElement,()=>({name:card.querySelector('[data-field="name"]').value.trim(),address:card.querySelector('[data-field="address"]').value.trim(),area:card.dataset.hotel}),(a,b)=>{lat.value=a;lng.value=b;});
+ });
+}
+setupPlace();setupHotels();
+const hotelPanel=document.getElementById('v10HotelPanel');
+if(hotelPanel){const observer=new MutationObserver(()=>setupHotels());observer.observe(hotelPanel,{childList:true});}
+console.info('Tripnote V10.1 coordinate lookup ready');
 })();
 </script>
 </body>
