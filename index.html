@@ -2794,5 +2794,88 @@ button.onclick=()=>{day=selectedDay;showView('todayView')};
 renderToday();
 })();
 </script>
+<!-- Tripnote V15: mobile-first usability refinements; no data changes -->
+<style>
+@media(max-width:720px){
+ html{scroll-padding-top:118px}
+ body{overflow-x:hidden}
+ .app,main,.view,.day-main,.day-side{min-width:0}
+ .sidebar{gap:9px;padding:9px 12px 7px;box-shadow:0 2px 8px #20372b0d}
+ .brand{padding:0 3px;gap:8px}
+ .brand-mark{width:30px;height:30px;border-radius:9px;font-size:17px}
+ .brand strong{font-size:15px}
+ .brand small{font-size:8px;letter-spacing:.7px}
+ .nav{gap:6px;padding:3px 0 6px;scrollbar-width:thin;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+ .nav button{flex:0 0 auto;min-height:42px;padding:10px 13px;font-size:12px;border:1px solid transparent}
+ .nav button.active{border-color:#c8dbcf}
+ main{padding:16px 12px 48px}
+ .topbar{gap:9px;flex-wrap:wrap;margin-bottom:15px}
+ .topbar>div:first-child{min-width:0}
+ .topbar h1{font-size:21px;overflow-wrap:anywhere}
+ .top-actions{width:100%;gap:7px}
+ .top-actions .btn{flex:1;min-height:42px;text-align:center}
+ .section-head{flex-wrap:wrap;align-items:flex-start}
+ .section-head .btn{min-height:42px}
+ .hero{padding:20px}
+ .hero h2{font-size:22px}
+ .hero-stats{gap:14px;flex-wrap:wrap}
+ .hero-stats strong{font-size:22px}
+ .stats{gap:9px}
+ .stat,.panel,.day-card,.day-main,.day-side,.library-item{padding:14px;min-width:0}
+ .stat strong{font-size:20px}
+ .day-tabs{scrollbar-width:thin;overscroll-behavior-x:contain}
+ .day-tab{min-height:44px;font-size:12px}
+ .btn,.mini,.actions button,.toolbar button{min-height:40px}
+ .place{gap:9px}
+ .place-actions{margin-left:0;width:100%;justify-content:flex-end}
+ .place-actions button{min-width:44px}
+ .field input,.field select,.field textarea,.quick-add input,.toolbar input,.toolbar select{font-size:16px;min-height:44px}
+ .quick-add{flex-wrap:wrap}
+ .quick-add input{flex-basis:160px}
+ .route-box{padding:14px}
+ .route-result,.route-result *{overflow-wrap:anywhere}
+ .modal-back{padding:10px}
+ .modal{padding:18px;max-height:calc(100dvh - 20px)}
+ .modal-actions{flex-wrap:wrap}
+ .modal-actions button{min-height:44px}
+ #expenses .ex-card{padding:14px}
+ #expenses .ex-row{min-width:0;overflow-wrap:anywhere}
+ #expenses .ex-row>div{min-width:0}
+ #expenses .ex-row button{min-height:40px}
+ #expenses input,#expenses select{font-size:16px;min-height:44px}
+ #expenses button{min-height:42px}
+ #todayView .td-card{padding:15px;margin:10px 0}
+ #todayView .td-tabs{scrollbar-width:thin;overscroll-behavior-x:contain}
+ #todayView .td-tabs button{min-height:44px;font-size:12px}
+ #todayView .td-stop{gap:10px;padding:14px 0}
+ #todayView .td-time{min-width:67px;font-size:14px}
+ #todayView .td-detail{overflow-wrap:anywhere}
+ #todayView .td-detail strong{font-size:15px;line-height:1.5}
+ #todayView .td-detail p{font-size:13px}
+ #todayView .td-actions a,#todayView .td-actions button{min-height:44px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+ #todayView .td-actions{gap:8px}
+}
+@media(max-width:360px){
+ main{padding-left:9px;padding-right:9px}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .hero-stats{gap:10px}
+ #todayView .td-stop{flex-direction:column;gap:5px}
+ #todayView .td-time{min-width:0}
+}
+@media(hover:none) and (pointer:coarse){
+ button,a,select,input{touch-action:manipulation}
+}
+</style>
+<script>
+(function(){
+const nav=document.querySelector('.nav');
+if(!nav)return;
+nav.addEventListener('click',event=>{
+ const target=event.target.closest('button[data-view]');
+ if(!target||window.innerWidth>720)return;
+ requestAnimationFrame(()=>target.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'}));
+});
+})();
+</script>
 </body>
 </html>
