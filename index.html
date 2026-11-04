@@ -1648,6 +1648,33 @@ render();
 
 
 
+
+<!-- Tripnote V12.4: flight itinerary integration -->
+<style>
+.tn124-dayflights{margin:12px 0 18px;display:grid;gap:9px}
+.tn124-flight{background:#eef5f1;border:1px solid #bcd3c6;border-radius:12px;padding:13px}
+.tn124-flight strong{display:block;margin-bottom:7px;color:#294b3c}
+.tn124-flight .tn124-route{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700}
+.tn124-flight small{display:block;margin-top:8px;color:#587064;line-height:1.5}
+</style>
+<script>
+(function(){
+'use strict';
+const host=document.createElement('div');host.id='tn124DayFlights';host.className='tn124-dayflights';
+const target=document.getElementById('dayDesc');if(!target)return;
+target.after(host);
+function update(){
+ const flights=Array.isArray(data.flights)?data.flights:[];
+ const today=flights.filter(f=>Number(f.day)===selectedDay);
+ host.innerHTML=today.map(f=>'<article class="tn124-flight"><strong>✈️ '+esc(String(f.code||''))+' · '+esc(String(f.date||''))+'</strong><div class="tn124-route"><span>'+esc(String(f.from||'출발 미입력'))+' · '+esc(String(f.departure||'--:--'))+'</span><span aria-hidden="true">→</span><span>'+esc(String(f.to||'도착 미입력'))+' · '+esc(String(f.arrival||'--:--'))+'</span></div><small>항공편 예약 기준 현지 시각 · V12 항공편 등록에서 수정 가능'+(f.note?' · '+esc(String(f.note)):'')+'</small></article>').join('');
+ host.hidden=!today.length;
+}
+const previous=renderDay;
+renderDay=function(){previous();update()};
+update();
+console.info('Tripnote V12.4 flight itinerary cards ready');
+})();
+</script>
 </body>) -->
 <style>
 .v7-panel{margin-top:16px;padding:17px;border:1px solid #d9e6df;background:#f8fbf9;border-radius:15px}
