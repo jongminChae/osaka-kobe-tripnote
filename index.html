@@ -1649,6 +1649,74 @@ render();
 
 
 
+<!-- Tripnote V12.5: flight-aware itinerary time windows -->
+<style>
+.tn125-window{border:1px solid #c7d9d0;background:#f5faf7;border-radius:12px;padding:13px;margin:0 0 12px}
+.tn125-window h4{margin:0 0 8px}.tn125-window p{margin:6px 0;font-size:13px;line-height:1.6}
+.tn125-controls{display:flex;gap:9px;flex-wrap:wrap;align-items:end;margin:10px 0}
+.tn125-controls label{font-size:12px;display:grid;gap:4px}
+.tn125-controls input{width:92px;min-height:34px}
+.tn125-window .tn125-result{font-weight:700;color:#285440}
+</style>
+<script>
+(function(){
+'use strict';
+const host=document.createElement('div');host.id='tn125Windows';
+const flightsHost=document.getElementById('tn124DayFlights');
+if(!flightsHost)return;
+flightsHost.after(host);
+const toMin=t=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t||'')?Number(t.slice(0,2))*60+Number(t.slice(3)):null;
+const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+function render(){
+ const flights=Array.isArray(data.flights)?data.flights:[];
+ const today=flights.filter(f=>Number(f.day)===selectedDay);
+ if(!today.length){host.replaceChildren();return}
+ if(!data.flightTiming||typeof data.flightTiming!=='object')data.flightTiming={};
+ host.innerHTML='';
+ today.forEach(f=>{
+  const id=String(f.id||f.code+'-'+f.date);
+  const arrival=(f.to==='UKB'||f.to==='KIX'||f.to==='ITM')&&f.from==='ICN';
+  const departure=(f.from==='UKB'||f.from==='KIX'||f.from==='ITM')&&f.to==='ICN';
+  if(!arrival&&!departure)return;
+  const base=arrival?toMin(f.arrival):toMin(f.departure);
+  if(base===null)return;
+  const cfg=data.flightTiming[id]||{};
+  const defaults=arrival?[60,60]:[150,60];
+  const box=document.createElement('section');box.className='tn125-window';
+  const heading=document.createElement('h4');
+  heading.textContent=(arrival?'🛬 도착일 첫 일정 추천':'🛫 출국일 마지막 일정 추천')+' · '+f.code;
+  const explanation=document.createElement('p');
+  explanation.textContent=arrival?'입국·수하물 수령과 공항→시내 이동을 고려한 관광 시작 가능 시각입니다.':'공항에 출발 전 도착할 여유와 시내→공항 이동을 고려한 관광 종료 권장 시각입니다.';
+  const controls=document.createElement('div');controls.className='tn125-controls';
+  const labels=arrival?['입국·수하물 (분)','공항→시내 이동 (분)']:['공항 사전 도착 (분)','시내→공항 이동 (분)'];
+  const inputs=labels.map((label,i)=>{
+   const wrap=document.createElement('label');wrap.textContent=label;
+   const input=document.createElement('input');input.type='number';input.min='0';input.max='600';input.step='5';
+   input.value=String(Number.isFinite(Number(cfg[i]))&&cfg[i]!==undefined?cfg[i]:defaults[i]);
+   wrap.appendChild(input);controls.appendChild(wrap);return input;
+  });
+  const result=document.createElement('p');result.className='tn125-result';
+  const note=document.createElement('p');note.textContent='현지 시각 기준의 예상치입니다. 실제 공항·교통 상황을 확인하세요. 기존 방문 장소와 일정 시간은 자동 변경하지 않습니다.';
+  function calc(){
+   const vals=inputs.map(x=>Math.max(0,Math.min(600,Number(x.value)||0)));
+   const n=arrival?base+vals[0]+vals[1]:base-vals[0]-vals[1];
+   result.textContent=(arrival?'관광 시작 권장: ':'관광 종료 권장: ')+(n<0||n>=1440?'날짜 경계에 걸림 — 이동 시간을 확인하세요':hhmm(n))+' (항공편 '+(arrival?f.arrival:f.departure)+')';
+  }
+  inputs.forEach((input,i)=>input.addEventListener('change',()=>{
+   const vals=inputs.map(x=>Math.max(0,Math.min(600,Number(x.value)||0)));
+   inputs.forEach((x,j)=>x.value=String(vals[j]));
+   data.flightTiming[id]=vals;
+   localStorage.setItem(KEY,JSON.stringify(data));
+   calc();
+  }));
+  box.append(heading,explanation,controls,result,note);host.appendChild(box);calc();
+ });
+}
+const prev=renderDay;
+renderDay=function(){prev();render()};
+render();
+})();
+</script>
 <!-- Tripnote V12.4: flight itinerary integration -->
 <style>
 .tn124-dayflights{margin:12px 0 18px;display:grid;gap:9px}
