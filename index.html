@@ -2518,5 +2518,82 @@ renderDay=function(){prev();render()};
 render();
 })();
 </script>
+<!-- Tripnote V12.6: apply flight time windows to smart schedule -->
+<style>
+.tn126{border:1px solid #cbded3;border-radius:12px;padding:13px;margin:12px 0;background:#f7faf8}
+.tn126 h4{margin:0 0 7px}.tn126 p{font-size:12px;line-height:1.6;margin:7px 0}
+.tn126 button{border:1px solid #a9c8b5;border-radius:8px;padding:9px 12px;background:#e5f1e9;color:#244d35;cursor:pointer;margin:6px 8px 6px 0}
+.tn126 .tn126-warn{color:#a24f22}.tn126 ul{padding-left:20px;font-size:12px;line-height:1.8}
+</style>
+<script>
+(function(){
+'use strict';
+const container=document.createElement('section');container.id='tn126';container.className='tn126';
+const windowPanel=document.getElementById('tn125Windows');if(!windowPanel)return;
+windowPanel.after(container);
+const minute=t=>{if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(t||''))return null;return Number(t.slice(0,2))*60+Number(t.slice(3))};
+const clock=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+function plan(){
+ const flights=(Array.isArray(data.flights)?data.flights:[]).filter(f=>Number(f.day)===selectedDay);
+ const windows=[];
+ for(const f of flights){
+  const arrival=f.from==='ICN'&&['UKB','KIX','ITM'].includes(f.to);
+  const departure=f.to==='ICN'&&['UKB','KIX','ITM'].includes(f.from);
+  if(!arrival&&!departure)continue;
+  const base=minute(arrival?f.arrival:f.departure);if(base===null)continue;
+  const cfg=data.flightTiming?.[String(f.id||f.code+'-'+f.date)];
+  const defaults=arrival?[60,60]:[150,60];
+  const buffer=Array.isArray(cfg)?cfg:defaults;
+  const sum=buffer.reduce((a,b)=>a+Math.max(0,Math.min(600,Number(b)||0)),0);
+  windows.push({type:arrival?'arrival':'departure',at:arrival?base+sum:base-sum,code:f.code});
+ }
+ const earliest=Math.max(0,...windows.filter(w=>w.type==='arrival').map(w=>w.at));
+ const latest=Math.min(1440,...windows.filter(w=>w.type==='departure').map(w=>w.at));
+ const places=data.days[selectedDay]?.places||[];
+ const items=[],warnings=[];let cursor=earliest;
+ if(earliest>=1440||latest<0||earliest>latest)warnings.push('항공편 기준 관광 가능 시간이 유효하지 않습니다.');
+ places.forEach((p,i)=>{
+  const fixed=!!p.v7Fixed,original=minute(p.v7Start);
+  const duration=Number.isInteger(p.v7Duration)&&p.v7Duration>=0?p.v7Duration:60;
+  const travel=Number.isInteger(p.v7Travel)&&p.v7Travel>=0?p.v7Travel:0;
+  let start;
+  if(fixed){
+   if(original===null){warnings.push(p.name+': 고정 일정인데 시작 시간이 없습니다.');start=cursor}
+   else{start=original;if(start<cursor)warnings.push(p.name+': 고정 예약 시각과 앞 일정이 충돌합니다.')}
+  }else start=Math.max(cursor,original!==null&&original>=earliest?original:cursor);
+  if(start<earliest)warnings.push(p.name+': 항공편 도착 후 시작 가능 시간보다 이릅니다.');
+  if(start+duration>latest)warnings.push(p.name+': 관광 종료 권장 시각을 초과합니다.');
+  if(start>=1440||start<0)warnings.push(p.name+': 일정이 날짜 경계를 넘습니다.');
+  items.push({p,start,duration,travel,fixed,original});
+  cursor=Math.max(cursor,start+duration+travel);
+ });
+ return {windows,earliest,latest,items,warnings};
+}
+function render(){
+ const p=plan();container.replaceChildren();
+ if(!p.windows.length){container.hidden=true;return}container.hidden=false;
+ const h=document.createElement('h4');h.textContent='🗓️ 항공편 기준 스마트 시간표 적용';
+ const desc=document.createElement('p');desc.textContent='방문 장소 순서·체류 시간·이동 시간을 유지하며 권장 시간 안으로 배치합니다. 기존 시작 시간이 늦으면 유지하고, 예약/고정 일정은 변경하지 않습니다.';
+ const range=document.createElement('p');range.textContent='관광 가능 시간: '+(p.earliest<1440?clock(p.earliest):'계산 범위 초과')+' ~ '+(p.latest>=0?clock(p.latest):'계산 범위 초과');
+ const preview=document.createElement('ul');
+ p.items.forEach(x=>{const li=document.createElement('li');li.textContent=x.p.name+' : '+(x.start>=0&&x.start<1440?clock(x.start):'날짜 경계 초과')+' ~ '+(x.start+x.duration<1440?clock(x.start+x.duration):'날짜 경계 초과')+(x.fixed?' (🔒 예약 고정)':'');preview.appendChild(li)});
+ const alert=document.createElement('p');alert.className='tn126-warn';alert.textContent=p.warnings.length?'⚠ '+p.warnings.join(' / '):'✓ 계산상 시간 충돌이 없습니다.';
+ const btn=document.createElement('button');btn.type='button';btn.textContent='미리보기 일정에 적용';
+ btn.disabled=!p.items.length||p.warnings.length>0;
+ btn.onclick=()=>{
+  const latest=plan();
+  if(latest.warnings.length){alert.textContent='충돌이 발생해 적용을 중단했습니다. 페이지를 다시 확인하세요.';btn.disabled=true;return}
+  if(!confirm('DAY '+(selectedDay+1)+'의 일반 방문 장소 시작 시간을 미리보기대로 변경할까요? 예약/고정 시간은 유지합니다.'))return;
+  let changed=0;
+  latest.items.forEach(x=>{if(x.fixed)return;const next=clock(x.start);if(x.p.v7Start!==next){x.p.v7Start=next;changed++}});
+  save();notify('항공편 기준 '+changed+'개 장소의 시작 시간을 적용했습니다.');
+ };
+ const note=document.createElement('p');note.textContent='시간 충돌이 있으면 적용 버튼을 비활성화합니다. 체류 시간이 없는 장소는 미리보기에서 60분으로 가정하며 저장된 체류 시간은 바꾸지 않습니다. 실제 이동 시간과 영업시간은 별도 확인이 필요합니다.';
+ container.append(h,desc,range,preview,alert,btn,note);
+}
+const previous=renderDay;renderDay=function(){previous();render()};
+render();
+})();
+</script>
 </body>
 </html>
