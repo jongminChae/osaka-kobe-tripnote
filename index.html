@@ -2595,5 +2595,93 @@ const previous=renderDay;renderDay=function(){previous();render()};
 render();
 })();
 </script>
+<!-- Tripnote V12.7: conflict diagnosis and safe repair suggestions -->
+<style>
+.tn127{margin:12px 0;padding:13px;border:1px solid #d8e1d8;border-radius:12px;background:#fff}
+.tn127 h4{margin:0 0 8px}.tn127 p,.tn127 li{font-size:12px;line-height:1.7}
+.tn127 ul{padding-left:20px}.tn127 button{border:1px solid #b3cbb8;background:#edf5ef;color:#28523a;border-radius:8px;padding:9px 12px;cursor:pointer}
+.tn127 .tn127-alert{color:#99531e}
+</style>
+<script>
+(function(){
+'use strict';
+const anchor=document.getElementById('tn126');if(!anchor)return;
+const host=document.createElement('section');host.className='tn127';host.id='tn127';anchor.after(host);
+const minute=t=>{if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(t||''))return null;return Number(t.slice(0,2))*60+Number(t.slice(3))};
+const clock=n=>n<0||n>=1440?'날짜 경계 초과':String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+function bounds(){
+ const flights=(Array.isArray(data.flights)?data.flights:[]).filter(f=>Number(f.day)===selectedDay);
+ let lower=0,upper=1440,found=false;
+ for(const f of flights){
+  const inbound=f.from==='ICN'&&['UKB','KIX','ITM'].includes(f.to);
+  const outbound=f.to==='ICN'&&['UKB','KIX','ITM'].includes(f.from);
+  if(!inbound&&!outbound)continue;
+  const t=minute(inbound?f.arrival:f.departure);if(t===null)continue;
+  found=true;
+  const cfg=data.flightTiming?.[String(f.id||f.code+'-'+f.date)];
+  const d=inbound?[60,60]:[150,60];
+  const b=Array.isArray(cfg)?cfg:d;
+  const buffer=b.reduce((n,x)=>n+Math.max(0,Math.min(600,Number(x)||0)),0);
+  if(inbound)lower=Math.max(lower,t+buffer);
+  else upper=Math.min(upper,t-buffer);
+ }
+ return found?{lower,upper}:null;
+}
+function simulate(places,lower,upper,relax){
+ let cursor=lower;const items=[],issues=[];
+ for(let i=0;i<places.length;i++){
+  const p=places[i],fixed=!!p.v7Fixed,old=minute(p.v7Start);
+  const stay=Number.isInteger(p.v7Duration)&&p.v7Duration>=0?p.v7Duration:60;
+  const move=i===places.length-1?0:Number.isInteger(p.v7Travel)&&p.v7Travel>=0?p.v7Travel:0;
+  const start=fixed?(old===null?cursor:old):Math.max(cursor,relax?lower:(old??lower));
+  if(fixed&&old===null)issues.push(p.name+': 고정 예약 시작 시간이 없습니다.');
+  if(fixed&&start<cursor)issues.push(p.name+': 예약 시작 '+clock(start)+'보다 앞 일정이 '+(cursor-start)+'분 늦습니다.');
+  if(start<lower)issues.push(p.name+': 관광 가능 시작보다 '+(lower-start)+'분 빠릅니다.');
+  if(start+stay>upper)issues.push(p.name+': 종료 권장 시각을 '+(start+stay-upper)+'분 초과합니다.');
+  if(start<0||start+stay>=1440)issues.push(p.name+': 날짜 경계를 확인해야 합니다.');
+  items.push({p,start,stay,move,fixed,old});
+  cursor=Math.max(cursor,start+stay+move);
+ }
+ return {items,issues};
+}
+function render(){
+ const b=bounds();host.replaceChildren();
+ if(!b){host.hidden=true;return}host.hidden=false;
+ const places=data.days[selectedDay]?.places||[];
+ const current=simulate(places,b.lower,b.upper,false);
+ const relaxed=simulate(places,b.lower,b.upper,true);
+ const h=document.createElement('h4');h.textContent='🛠️ V12.7 일정 충돌 해결 제안';
+ const intro=document.createElement('p');intro.textContent='예약/고정 일정과 방문 순서는 그대로 두고, 일반 일정의 시작 시각을 앞당겨 빈 시간을 줄이는 대안을 계산합니다. 자동으로 데이터를 변경하지 않습니다.';
+ host.append(h,intro);
+ const status=document.createElement('p');status.className=current.issues.length?'tn127-alert':'';
+ status.textContent=current.issues.length?'현재 충돌 '+current.issues.length+'건':'현재 항공편 기준 충돌 없음';
+ host.append(status);
+ if(!current.issues.length){const p=document.createElement('p');p.textContent='현재 일정에 충돌이 없어 조정할 필요가 없습니다.';host.append(p);return}
+ const list=document.createElement('ul');
+ current.issues.forEach(message=>{const li=document.createElement('li');li.textContent=message;list.append(li)});
+ host.append(list);
+ const summary=document.createElement('p');summary.textContent=relaxed.issues.length?'일반 일정의 시작 시각을 유연하게 조정해도 '+relaxed.issues.length+'건의 문제가 남습니다. 고정 예약 시각, 체류·이동 시간 또는 방문 장소 수를 직접 검토해 주세요.':'대안: 일반 일정의 기존 시작 시각 제약을 풀면 충돌 없이 배치할 수 있습니다.';
+ host.append(summary);
+ if(relaxed.issues.length){
+  const remain=document.createElement('ul');relaxed.issues.forEach(m=>{const li=document.createElement('li');li.textContent=m;remain.append(li)});host.append(remain);return;
+ }
+ const preview=document.createElement('ul');
+ relaxed.items.forEach(x=>{const li=document.createElement('li');li.textContent=x.p.name+' '+clock(x.start)+' ~ '+clock(x.start+x.stay)+(x.fixed?' (🔒 고정)':'');preview.append(li)});
+ host.append(preview);
+ const btn=document.createElement('button');btn.textContent='충돌 해결 대안 적용';btn.type='button';
+ btn.onclick=()=>{
+  const latestBounds=bounds();if(!latestBounds)return;
+  const latest=simulate(data.days[selectedDay].places,latestBounds.lower,latestBounds.upper,true);
+  if(latest.issues.length){alert('조건이 변경되어 적용할 수 없습니다. 다시 확인해 주세요.');render();return}
+  if(!confirm('일반 방문 장소의 시작 시각만 제안대로 변경할까요? 고정 예약·방문 순서·체류 및 이동 시간은 유지합니다.'))return;
+  let count=0;latest.items.forEach(x=>{if(x.fixed)return;const t=clock(x.start);if(x.p.v7Start!==t){x.p.v7Start=t;count++}});
+  save();notify('일반 일정 '+count+'곳의 시작 시간을 조정했습니다.');
+ };
+ host.append(btn);
+ const foot=document.createElement('p');foot.textContent='참고: 체류 시간이 비어 있는 장소는 60분으로 가정합니다. 교통 상황·영업시간은 검증하지 않습니다.';host.append(foot);
+}
+const previous=renderDay;renderDay=function(){previous();render()};render();
+})();
+</script>
 </body>
 </html>
