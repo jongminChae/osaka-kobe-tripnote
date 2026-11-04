@@ -2162,5 +2162,60 @@ const prev=renderDay;renderDay=function(){prev();render102()};render102();
 console.info('Tripnote V10.2 estimated walking segment integration ready');
 })();
 </script>
+
+<!-- Tripnote V11: restaurant discovery and itinerary handoff -->
+<style>
+.tn11-panel{margin-top:16px;padding:17px;border:1px solid #c9ddd3;border-radius:14px;background:#f7fbf9}
+.tn11-panel h3{margin:0 0 7px}.tn11-panel p,.tn11-panel small{font-size:11px;line-height:1.65;color:#65786d}
+.tn11-controls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.tn11-controls input,.tn11-controls select{min-width:0;flex:1;padding:9px;border:1px solid #d3e2d8;border-radius:8px;background:white}
+.tn11-controls button,.tn11-item button{padding:8px 10px;border:1px solid #b9d3c5;background:white;color:#34624c;border-radius:8px;cursor:pointer}
+.tn11-item{padding:11px;background:white;border:1px solid #e0e9e4;border-radius:10px;margin:8px 0;font-size:12px}
+.tn11-item strong{display:block}.tn11-item small{display:block;margin:5px 0}
+.tn11-item a{font-size:12px;margin-right:10px}
+</style>
+<script>
+(function(){
+'use strict';
+const panel=document.createElement('section');panel.id='tn11Panel';panel.className='tn11-panel';
+const after=document.getElementById('tn102Panel')||document.getElementById('v9SchedulePanel');
+if(after)after.after(panel);
+const picks=[
+ {city:'고베',name:'고베규 야키니쿠 오카토라 하나레',jp:'神戸牛焼肉 おか虎 離れ',kind:'야키니쿠',area:'산노미야'},
+ {city:'고베',name:'고베 스테이크 츠바사 본점',jp:'KOBE STEAK Tsubasa Honten',kind:'스테이크',area:'산노미야'},
+ {city:'고베',name:'이시다야 하나레',jp:'炭焼肉 石田屋。Hanare',kind:'야키니쿠',area:'산노미야'}
+];
+const escape11=x=>esc(String(x??''));
+function add11(name,area,source){
+ if(!name.trim()){alert('식당 이름을 입력해 주세요.');return}
+ const ps=data.days[selectedDay].places;
+ if(ps.some(p=>p.type==='식당'&&p.name.trim().toLowerCase()===name.trim().toLowerCase())){alert('해당 날짜에 같은 이름의 식당이 이미 있습니다.');return}
+ ps.push({id:newId(),name:name.trim(),type:'식당',status:'후보',area:area||data.days[selectedDay].area,address:'',lat:'',lng:'',price:'',booking:'확인 필요',memo:source?'맛집 탐색에서 추가 · 영업시간/주소/좌표 확인 필요':'직접 등록 · 영업시간/주소/좌표 확인 필요',v7Duration:60,v7Travel:null});
+ save();notify(name+' 식당을 DAY '+(selectedDay+1)+' 후보에 추가했습니다. 주소와 좌표를 확인해 주세요.');
+}
+function render11(){
+ const city=/고베/.test(data.days[selectedDay]?.area||'')?'고베':'오사카';
+ panel.innerHTML='<h3>🍜 V11 맛집 탐색 · 일정에 추가</h3><p>식당을 찾아 Tabelog에서 정보를 확인한 뒤 현재 DAY에 후보로 추가할 수 있습니다. 실시간 Tabelog 평점·영업시간·예약 정보는 자동 수집하지 않습니다.</p>'+
+ '<div class="tn11-controls"><select id="tn11City"><option value="고베">고베</option><option value="오사카">오사카</option></select><input id="tn11Search" placeholder="식당명 또는 음식 종류 (예: 라멘)" maxlength="120"><button id="tn11Find">Tabelog에서 검색 ↗</button></div>'+
+ '<div id="tn11Picks"></div><div class="tn11-controls"><input id="tn11Name" placeholder="일정에 추가할 식당 이름" maxlength="120"><button id="tn11Add">DAY '+(selectedDay+1)+'에 추가</button></div>'+
+ '<p>추가 시 식당 유형·후보 상태·체류 60분으로 저장됩니다. 주소와 좌표를 확인해야 동선 계산에 정확히 반영됩니다. Tabelog에서 선택한 식당은 이름을 복사해 아래에 입력해 주세요.</p>';
+ const citySelect=document.getElementById('tn11City');citySelect.value=city;
+ function cards(){
+  const selected=citySelect.value,items=picks.filter(x=>x.city===selected);
+  document.getElementById('tn11Picks').innerHTML=items.length?items.map((p,i)=>'<div class="tn11-item"><strong>'+escape11(p.name)+'</strong><small>'+escape11(p.kind)+' · '+escape11(p.area)+' · 방문 전 최신 정보 확인</small><button data-tn11-pick="'+i+'">이 식당을 후보로 추가</button> <a target="_blank" rel="noopener noreferrer" href="https://www.google.com/search?q='+encodeURIComponent('site:tabelog.com '+p.jp)+'">Tabelog 정보 검색 ↗</a></div>').join(''):'<div class="tn11-item">오사카는 Tabelog 검색으로 식당을 찾아 아래 이름 입력란에 등록해 주세요.</div>';
+  document.querySelectorAll('[data-tn11-pick]').forEach(b=>b.onclick=()=>{const p=items[Number(b.dataset.tn11Pick)];if(p)add11(p.name,p.area,true)});
+ }
+ citySelect.onchange=cards;cards();
+ document.getElementById('tn11Find').onclick=()=>{
+  const q=document.getElementById('tn11Search').value.trim(),region=citySelect.value;
+  const terms=(region==='고베'?'神戸 ':'大阪 ')+(q||'レストラン');
+  window.open('https://www.google.com/search?'+new URLSearchParams({q:'site:tabelog.com '+terms}),'_blank','noopener,noreferrer');
+ };
+ document.getElementById('tn11Add').onclick=()=>add11(document.getElementById('tn11Name').value,citySelect.value,true);
+}
+const prior=renderDay;renderDay=function(){prior();render11()};render11();
+console.info('Tripnote V11 restaurant discovery ready');
+})();
+</script>
 </body>
 </html>
