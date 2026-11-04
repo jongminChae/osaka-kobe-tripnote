@@ -2738,5 +2738,61 @@ const oldShow=showView;showView=function(v){oldShow(v);if(v==='expenses'){$('pag
 tab.onclick=()=>showView('expenses');draw();
 })();
 </script>
+<style>
+#todayView .td-card{background:white;border:1px solid var(--line);border-radius:15px;padding:16px;margin:12px 0}
+#todayView .td-tabs{display:flex;gap:6px;overflow-x:auto;padding:5px 0}
+#todayView .td-tabs button{flex:0 0 auto;padding:10px 12px;border:1px solid #cbd9d0;background:white;border-radius:9px}
+#todayView .td-tabs button.active{background:#456b61;color:white}
+#todayView .td-stop{display:flex;gap:13px;padding:15px 0;border-bottom:1px solid #edf0ed}
+#todayView .td-stop:last-child{border-bottom:0}
+#todayView .td-time{min-width:75px;font-weight:750;font-size:14px;color:#3e6554}
+#todayView .td-detail{flex:1;min-width:0}
+#todayView .td-detail strong{font-size:15px}
+#todayView .td-detail p{font-size:12px;color:#66736c;line-height:1.6;margin:6px 0}
+#todayView .td-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+#todayView .td-actions a,#todayView .td-actions button{display:inline-block;text-decoration:none;border:1px solid #bed3c5;background:#f2f8f4;color:#2c5540;padding:8px 10px;border-radius:9px;font-size:12px}
+#todayView .td-note{font-size:12px;color:#61746b;line-height:1.7}
+#todayView .td-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){#todayView .td-grid{grid-template-columns:1fr}#todayView .td-time{min-width:65px}}
+</style>
+<script>
+(function(){
+const nav=document.querySelector('.nav'),main=document.querySelector('main');
+if(!nav||!main)return;
+const button=document.createElement('button');button.dataset.view='todayView';button.textContent='☀ 여행 당일 보기';nav.append(button);
+const page=document.createElement('section');page.id='todayView';page.className='view';main.append(page);
+let day=selectedDay;
+const clean=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clock=x=>/^([01]\d|2[0-3]):[0-5]\d$/.test(x||'')?x:'시간 미정';
+const url=x=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(x);
+const date=i=>{const d=new Date(2027,2,26+i);return (d.getMonth()+1)+'/'+d.getDate()};
+function renderToday(){
+ const d=data.days[day];if(!d)return;
+ const flights=(Array.isArray(data.flights)?data.flights:[]).filter(f=>Number(f.day)===day);
+ const places=d.places||[];
+ page.innerHTML='<div class="section-head"><div><h2>☀ 여행 당일 보기</h2><p>이동 중 보기 편한 읽기 전용 일정입니다. 변경은 날짜별 일정에서 할 수 있습니다.</p></div></div>'+
+ '<div class="td-tabs">'+data.days.map((x,i)=>'<button data-td-day="'+i+'" class="'+(i===day?'active':'')+'">DAY '+(i+1)+' · '+date(i)+'</button>').join('')+'</div>'+
+ '<div class="td-card"><h2>DAY '+(day+1)+' · '+date(day)+' · '+clean(d.area)+'</h2><div class="td-note">'+clean(d.memo||'등록된 하루 메모가 없습니다.')+'</div></div>'+
+ (flights.length?'<div class="td-card"><h3>✈ 항공편</h3>'+flights.map(f=>'<div class="td-stop"><div class="td-time">'+clean(clock(f.departure))+'</div><div class="td-detail"><strong>'+clean(f.code||'항공편')+' · '+clean(f.from||'')+' → '+clean(f.to||'')+'</strong><p>출발 '+clean(clock(f.departure))+' · 도착 '+clean(clock(f.arrival))+' · '+clean(f.airline||'')+'</p>'+(f.note?'<p>'+clean(f.note)+'</p>':'')+'</div></div>').join('')+'</div>':'')+
+ '<div class="td-card"><h3>📍 방문 일정 · '+places.length+'곳</h3>'+(places.length?places.map((p,i)=>'<div class="td-stop"><div class="td-time">'+clean(clock(p.v7Start))+'</div><div class="td-detail"><strong>'+(i+1)+'. '+clean(p.name)+'</strong><p>'+clean(p.area||'')+(p.v7Duration!=null?' · 체류 '+clean(p.v7Duration)+'분':'')+(p.v7Fixed?' · 🔒 고정 일정':'')+'</p>'+(p.address?'<p>'+clean(p.address)+'</p>':'')+(p.memo?'<p>'+clean(p.memo)+'</p>':'')+'<div class="td-actions"><a href="'+url(p.address||p.name+' '+(p.area||'일본'))+'" target="_blank" rel="noopener noreferrer">지도에서 보기 ↗</a></div></div></div>').join(''):'<p class="td-note">아직 등록된 장소가 없습니다.</p>')+'</div>'+
+ '<div class="td-card"><div class="td-actions"><button id="tdEdit">이 날짜 일정 편집</button><button id="tdRoute">전체 동선 지도 ↗</button></div><p class="td-note">방문 순서는 기존 일정 순서입니다. 이동·체류 시간과 실제 교통 상황은 별도 확인해 주세요.</p></div>';
+ page.querySelectorAll('[data-td-day]').forEach(b=>b.onclick=()=>{day=Number(b.dataset.tdDay);renderToday()});
+ page.querySelector('#tdEdit').onclick=()=>{selectedDay=day;showView('itinerary')};
+ page.querySelector('#tdRoute').onclick=()=>{
+  if(!places.length){notify('등록된 장소가 없습니다.');return}
+  const names=places.map(p=>p.address||p.name+' '+(p.area||'일본'));
+  if(names.length===1){window.open(url(names[0]),'_blank','noopener,noreferrer');return}
+  const origin=names[0],destination=names[names.length-1];
+  const query=new URLSearchParams({api:'1',origin,destination,travelmode:'walking'});
+  if(names.length>2)query.set('waypoints',names.slice(1,-1).join('|'));
+  window.open('https://www.google.com/maps/dir/?'+query.toString(),'_blank','noopener,noreferrer');
+ };
+}
+const previous=showView;
+showView=function(v){previous(v);if(v==='todayView'){$('pageTitle').textContent='여행 당일 보기';renderToday()}};
+button.onclick=()=>{day=selectedDay;showView('todayView')};
+renderToday();
+})();
+</script>
 </body>
 </html>
