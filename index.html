@@ -2039,8 +2039,16 @@ async function searchGeo(name,address,area){
   ];
   const knownHit=known.find(x=>x.re.test(normalized));
   if(knownHit)return [{lat:knownHit.lat,lon:knownHit.lon,display_name:knownHit.label,source:'built-in'}];
+  // Korean hotel name aliases are only search queries; saved display names stay unchanged.
+  const hotelAlias=/렘\s*플러스.*(?:고베|神戸).*산노미야|remm\s*plus.*kobe.*sannomiya|レムプラス神戸三宮/i.test(String(name||''));
+  const hotelQueries=hotelAlias?[
+   'レムプラス神戸三宮',
+   'remm plus Kobe Sannomiya',
+   '神戸市中央区加納町4丁目2番1号',
+   '4-2-1 Kanocho, Chuo-ku, Kobe, Hyogo'
+  ]:[];
   const candidates=[address&&address.trim(),name&&name.trim(),name&&area?[name,area].join(', '):'',name&&/이쿠타|生田/.test(name)?'Ikuta Jinja Kobe':'',name&&/난킨|南京/.test(name)?'Nankinmachi Kobe':'',name&&/포트타|ポートタワー/.test(name)?'Kobe Port Tower':''].filter(Boolean);
-  for(const q of [...new Set(candidates)]){
+  for(const q of [...new Set([...hotelQueries,...candidates])]){
    if(cache.has(q)){const v=cache.get(q);if(v.length)return v;continue}
    const delay=Math.max(0,1200-(Date.now()-lastRequest));if(delay)await wait(delay);
    lastRequest=Date.now();
