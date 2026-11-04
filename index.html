@@ -2466,7 +2466,7 @@ const host=document.createElement('div');host.id='tn125Windows';
 const flightsHost=document.getElementById('tn124DayFlights');
 if(!flightsHost)return;
 flightsHost.after(host);
-const toMin=t=>/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t||'')?Number(t.slice(0,2))*60+Number(t.slice(3)):null;
+const toMin=t=>/^([01]\d|2[0-3]):[0-5]\d$/.test(t||'')?Number(t.slice(0,2))*60+Number(t.slice(3)):null;
 const hhmm=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
 function render(){
  const flights=Array.isArray(data.flights)?data.flights:[];
