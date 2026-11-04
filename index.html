@@ -2297,6 +2297,10 @@ console.info('Tripnote V11.1 backup and restore ready');
 const panel=document.createElement('section');panel.id='tn12Panel';panel.className='tn12-panel';
 const anchor=document.getElementById('tn111Panel')||document.getElementById('tn11Panel');
 if(anchor)anchor.after(panel);else document.querySelector('#itinerary')?.append(panel);
+// Keep the flight form easy to find even when the itinerary has many long panels.
+const itinerary=document.getElementById('itinerary');
+const heading=itinerary?.querySelector('.section-head');
+if(heading)heading.after(panel);
 const airlineNames={KE:'대한항공',OZ:'아시아나항공','7C':'제주항공',LJ:'진에어',TW:'티웨이항공',BX:'에어부산',RS:'에어서울',ZE:'이스타항공',MM:'피치항공',JL:'일본항공',NH:'ANA'};
 const clean=s=>String(s??'').trim();
 const html=s=>esc(clean(s));
