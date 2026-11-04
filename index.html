@@ -2313,7 +2313,7 @@ function init(){
  '<div><label for="tn12Dep">출발 시각 (현지)</label><input id="tn12Dep" type="time"></div><div><label for="tn12Arr">도착 시각 (현지)</label><input id="tn12Arr" type="time"></div>'+
  '<div><label for="tn12Note">예약 메모 (민감정보 입력 주의)</label><input id="tn12Note" maxlength="300" placeholder="수하물, 터미널 등"></div><div><label for="tn12Day">연결할 여행 DAY</label><select id="tn12Day">'+data.days.map((d,i)=>'<option value="'+i+'">DAY '+(i+1)+' · '+html(d.area)+'</option>').join('')+'</select></div></div>'+
  '<div class="tn12-actions"><button id="tn12Lookup" type="button">항공편 조회 (키 없이 가능)</button><button id="tn12Save" type="button">항공편 저장</button></div><div id="tn12Status" class="tn12-status" role="status" aria-live="polite"></div><div id="tn12Cards"></div>'+
- '<p>키 없는 조회는 앱에 검증된 공개 시간표를 참고 자료로 포함한 방식이며, 실시간 웹 검색은 아닙니다. 지원 편명은 단계적으로 확대합니다. AirLabs 추가 조회는 일정 API를 브라우저에서 직접 호출합니다. API 키는 저장하지 않지만 요청 시 AirLabs에 전달됩니다. 브라우저 CORS 또는 무료 요금제 제한으로 실패할 수 있습니다. 키 없이도 수동 등록이 가능합니다. 항공편은 여행 전체 데이터에 저장되어 JSON 백업에 포함됩니다.</p>';
+ '<p>키 없는 조회는 앱에 등록된 일부 공개 시간표만 자동 입력하며, 그 외 편명은 외부 시간표 확인 링크를 제공합니다. 외부 웹페이지를 자동 수집하지 않으며 실시간 웹 검색도 아닙니다. 지원 편명은 단계적으로 확대합니다. AirLabs 추가 조회는 일정 API를 브라우저에서 직접 호출합니다. API 키는 저장하지 않지만 요청 시 AirLabs에 전달됩니다. 브라우저 CORS 또는 무료 요금제 제한으로 실패할 수 있습니다. 키 없이도 수동 등록이 가능합니다. 항공편은 여행 전체 데이터에 저장되어 JSON 백업에 포함됩니다.</p>';
  document.getElementById('tn12Day').value=String(selectedDay);
  document.getElementById('tn12Date').value=new Date().toISOString().slice(0,10);
  document.getElementById('tn12Lookup').onclick=lookup;
@@ -2357,7 +2357,20 @@ function publicLookup(q){
 async function lookup(){
  let q;try{q=check()}catch(e){status(e.message);return}
  const key=val('tn12Key');
- if(!key){if(publicLookup(q))return;status('이 편명·날짜는 현재 내장된 무료 공개 시간표에서 찾지 못했습니다. AirLabs 키로 추가 조회하거나 수동으로 등록할 수 있습니다.');return}
+ if(!key){
+  if(publicLookup(q))return;
+  const el=document.getElementById('tn12Status');
+  el.textContent='이 편명·날짜는 현재 자동 입력 지원 목록에 없습니다. 외부 공개 시간표를 확인한 후 예약 정보와 대조해 직접 입력해 주세요. ';
+  const link=document.createElement('a');
+  link.href='https://www.flight.info/'+encodeURIComponent(q.c);
+  link.target='_blank';link.rel='noopener noreferrer';
+  link.textContent=q.c+' 공개 시간표 열기 ↗';
+  el.appendChild(link);
+  const note=document.createElement('span');
+  note.textContent=' (외부 사이트의 표시 시간은 예약 시간과 다를 수 있습니다. 외부 사이트 정보는 자동 입력되지 않습니다.)';
+  el.appendChild(note);
+  return;
+ }
  status('AirLabs에 항공편을 조회하고 있습니다...');
  try{
   const url='https://airlabs.co/api/v9/schedules?'+new URLSearchParams({api_key:key,flight_iata:q.c});
